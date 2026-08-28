@@ -1098,7 +1098,121 @@
             <div class="stat-value" id="statFailed">0</div>
           </div>
         </div>
+
+          <!-- Daftar Personil di Ringkasan -->
+          <div class="dashboard-card" style="margin-top: 1.5rem; border-left: 5px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+              <h3 style="font-family: 'Outfit', sans-serif; display: flex; align-items: center; gap: 0.5rem;">
+                  <input type="text" id="ringkasanSearchPersonnel" placeholder="🔍 Cari nama / username / NRP..." oninput="filterRingkasanPersonnel(this.value)" style="padding: 0.4rem 0.75rem; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.85rem; width: 240px;">
+            </div>
+            <div id="ringkasanPersonnelList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem;">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
         </div> <!-- End adminTab_ringkasan -->
+
+        <!-- Modal Edit Personel (dari Ringkasan) -->
+        <div id="modalEditPersonnel" onclick="handleModalBackdropClick(event)" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(15,23,42,0.6); z-index: 2000; align-items:center; justify-content:center; padding: 1rem;">
+          <div style="background: #fff; width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; border-radius: var(--radius-lg); box-shadow: 0 25px 50px rgba(0,0,0,0.25); animation: slideDown 0.25s ease;" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div style="padding: 1.5rem 1.5rem 1rem; border-bottom: 1px solid var(--border-color); background: linear-gradient(135deg, var(--primary-light), #fff); border-radius: var(--radius-lg) var(--radius-lg) 0 0; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="font-family: 'Outfit', sans-serif; color: var(--primary); margin: 0;">✏️ Edit Akun Personel</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.25rem 0 0;">Ubah data dan akses akun personel ini</p>
+              </div>
+              <button onclick="closeEditPersonnelModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); line-height: 1; padding: 0.25rem;">✕</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div style="padding: 1.5rem;">
+              <form id="editPersModalForm" onsubmit="saveEditedPersonnel(event)">
+                <input type="hidden" id="modalPersOldUsername">
+
+                <!-- Identitas -->
+                <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem;">📋 Identitas Personel</p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="modalPersNama">Nama Lengkap <span class="required">*</span></label>
+                    <input type="text" id="modalPersNama" placeholder="Nama lengkap" required>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="modalPersNrp">NRP</label>
+                    <input type="text" id="modalPersNrp" placeholder="Nomor NRP">
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="modalPersPangkat">Pangkat</label>
+                    <select id="modalPersPangkat">
+                      <option value="">-- Pilih Pangkat --</option>
+                      <option value="Letda">Letda (Letnan Dua)</option>
+                      <option value="Lettu">Lettu (Letnan Satu)</option>
+                      <option value="Kapten">Kapten</option>
+                      <option value="Mayor">Mayor</option>
+                      <option value="Letkol">Letkol (Letnan Kolonel)</option>
+                      <option value="Kolonel">Kolonel</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="modalPersCorps">Corps</label>
+                    <select id="modalPersCorps">
+                      <option value="">-- Pilih Corps --</option>
+                      <option value="Infanteri (Inf)">Infanteri (Inf)</option>
+                      <option value="Armed (Arm)">Armed (Arm)</option>
+                      <option value="Arhanud (Arh)">Arhanud (Arh)</option>
+                      <option value="Kavaleri (Kav)">Kavaleri (Kav)</option>
+                      <option value="Zeni (Czi)">Zeni (Czi)</option>
+                      <option value="Penerbangan (Cpn)">Penerbangan (Cpn)</option>
+                      <option value="Komunikasi dan Elektronika (Cke)">Komunikasi dan Elektronika (Cke)</option>
+                      <option value="Peralatan (Cpl)">Peralatan (Cpl)</option>
+                      <option value="Pembekalan Angkutan (Cba)">Pembekalan Angkutan (Cba)</option>
+                      <option value="Kesehatan Militer (Ckm)">Kesehatan Militer (Ckm)</option>
+                      <option value="Polisi Militer (Cpm)">Polisi Militer (Cpm)</option>
+                      <option value="Ajudan Jenderal (Caj)">Ajudan Jenderal (Caj)</option>
+                      <option value="Topografi (Ctp)">Topografi (Ctp)</option>
+                      <option value="Keuangan (Cku)">Keuangan (Cku)</option>
+                      <option value="Hukum (Chk)">Hukum (Chk)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1rem 0;">
+                <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem;">🔐 Akun & Keamanan</p>
+
+                <div class="form-group">
+                  <label for="modalPersUsername">Username <span class="required">*</span></label>
+                  <input type="text" id="modalPersUsername" placeholder="Username akun" required>
+                </div>
+
+                <div style="background: #f8fafc; border: 1.5px dashed var(--border-color); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 0.75rem;">
+                  <p style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.6rem;">🔑 Reset Password (kosongkan jika tidak ingin diubah)</p>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label for="modalPersPassBaru">Password Baru</label>
+                      <input type="password" id="modalPersPassBaru" placeholder="Min. 4 karakter">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label for="modalPersPassKonfirm">Konfirmasi</label>
+                      <input type="password" id="modalPersPassKonfirm" placeholder="Ulangi password">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Feedback msg -->
+                <div id="editPersModalMsg" style="display:none; font-size: 0.85rem; font-weight: 600; padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); margin-bottom: 0.75rem;"></div>
+
+                <!-- Actions -->
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
+                  <button type="button" class="btn btn-danger" onclick="deletePersonnelFromModal()" style="font-size: 0.85rem; margin-right: auto;">🗑 Hapus Akun</button>
+                  <button type="button" class="btn btn-secondary" onclick="closeEditPersonnelModal()" style="font-size: 0.85rem;">Batal</button>
+                  <button type="submit" class="btn btn-primary" style="font-size: 0.85rem;">💾 Simpan Perubahan</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
 
         <!-- 2. Pengaturan Sync Tab -->
         <div id="adminTab_sync" style="display: none;">
@@ -2669,6 +2783,9 @@
       document.getElementById('statAverage').textContent = submissions.length > 0 ? (totalScore / submissions.length).toFixed(1) : '0.0';
       document.getElementById('statPassed').textContent = passedCount;
       document.getElementById('statFailed').textContent = failedCount;
+
+      // Render personnel cards in Ringkasan
+      renderRingkasanPersonnel().catch(e => console.error(e));
     }
 
     // View Detail Modal of answers
@@ -3103,6 +3220,180 @@
       users = users.filter(u => u.username !== username);
       await saveUsersOnline(users);
       await renderAdminPersonnel();
+    }
+
+    // ==========================================
+    // RINGKASAN - DAFTAR PERSONIL CARDS
+    // ==========================================
+
+    let _ringkasanAllPersonnel = []; // cache for filter
+
+    async function renderRingkasanPersonnel() {
+      const container = document.getElementById('ringkasanPersonnelList');
+      if (!container) return;
+      container.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:1rem;">⏳ Memuat...</div>`;
+
+      const users = await fetchUsersOnline();
+      const students = users.filter(u => u.role === 'siswa');
+      _ringkasanAllPersonnel = students;
+      renderPersonnelCards(students);
+    }
+
+    function renderPersonnelCards(students) {
+      const container = document.getElementById('ringkasanPersonnelList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (students.length === 0) {
+        container.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); padding:2rem; font-size:0.9rem;">Belum ada personil terdaftar.</div>`;
+        return;
+      }
+
+      students.forEach(student => {
+        const p = student.profile || {};
+        const initials = (p.nama || student.username || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+        const card = document.createElement('div');
+        card.style.cssText = `
+          background: #fff; border: 1.5px solid var(--border-color); border-radius: var(--radius-md);
+          padding: 1rem; cursor: pointer; transition: var(--transition);
+          display: flex; align-items: center; gap: 0.85rem;
+          box-shadow: var(--shadow-sm);
+        `;
+        card.onmouseenter = () => { card.style.borderColor = 'var(--primary)'; card.style.boxShadow = '0 4px 16px rgba(30,58,138,0.12)'; card.style.transform = 'translateY(-2px)'; };
+        card.onmouseleave = () => { card.style.borderColor = 'var(--border-color)'; card.style.boxShadow = 'var(--shadow-sm)'; card.style.transform = 'none'; };
+        card.onclick = () => openEditPersonnelModal(student.username);
+
+        card.innerHTML = `
+          <div style="width: 42px; height: 42px; min-width:42px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #2563eb); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; font-family:'Outfit',sans-serif; letter-spacing:-0.02em;">
+            ${initials}
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.nama || '(nama belum diisi)'}</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top:1px;">@${student.username} ${p.nrp ? '· ' + p.nrp : ''}</div>
+            <div style="font-size: 0.75rem; color: var(--accent); margin-top:2px; font-weight:600;">${p.pangkat || ''} ${p.corps ? '· ' + p.corps : ''}</div>
+          </div>
+          <span style="font-size:1rem; color:var(--text-muted);">›</span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function filterRingkasanPersonnel(query) {
+      const q = query.toLowerCase().trim();
+      if (!q) { renderPersonnelCards(_ringkasanAllPersonnel); return; }
+      const filtered = _ringkasanAllPersonnel.filter(s => {
+        const p = s.profile || {};
+        return (p.nama || '').toLowerCase().includes(q)
+          || (s.username || '').toLowerCase().includes(q)
+          || (p.nrp || '').toLowerCase().includes(q)
+          || (p.pangkat || '').toLowerCase().includes(q)
+          || (p.corps || '').toLowerCase().includes(q);
+      });
+      renderPersonnelCards(filtered);
+    }
+
+    // ==========================================
+    // MODAL EDIT PERSONEL (dari Ringkasan)
+    // ==========================================
+
+    async function openEditPersonnelModal(username) {
+      const users = await fetchUsersOnline();
+      const user = users.find(u => u.username === username);
+      if (!user) return;
+      const p = user.profile || {};
+
+      document.getElementById('modalPersOldUsername').value = user.username;
+      document.getElementById('modalPersUsername').value = user.username;
+      document.getElementById('modalPersNama').value = p.nama || '';
+      document.getElementById('modalPersNrp').value = p.nrp || '';
+      document.getElementById('modalPersPangkat').value = p.pangkat || '';
+      document.getElementById('modalPersCorps').value = p.corps || '';
+      document.getElementById('modalPersPassBaru').value = '';
+      document.getElementById('modalPersPassKonfirm').value = '';
+
+      const msgEl = document.getElementById('editPersModalMsg');
+      msgEl.style.display = 'none'; msgEl.textContent = '';
+
+      const modal = document.getElementById('modalEditPersonnel');
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeEditPersonnelModal() {
+      document.getElementById('modalEditPersonnel').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    function handleModalBackdropClick(event) {
+      if (event.target === document.getElementById('modalEditPersonnel')) {
+        closeEditPersonnelModal();
+      }
+    }
+
+    async function saveEditedPersonnel(event) {
+      event.preventDefault();
+      const msgEl = document.getElementById('editPersModalMsg');
+
+      const oldUsername = document.getElementById('modalPersOldUsername').value;
+      const newUsername = document.getElementById('modalPersUsername').value.trim();
+      const nama = document.getElementById('modalPersNama').value.trim();
+      const nrp = document.getElementById('modalPersNrp').value.trim();
+      const pangkat = document.getElementById('modalPersPangkat').value;
+      const corps = document.getElementById('modalPersCorps').value;
+      const passBaru = document.getElementById('modalPersPassBaru').value;
+      const passKonfirm = document.getElementById('modalPersPassKonfirm').value;
+
+      if (!nama) {
+        msgEl.textContent = '❌ Nama tidak boleh kosong.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+      }
+      if (passBaru && passBaru.length < 4) {
+        msgEl.textContent = '❌ Password baru minimal 4 karakter.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+      }
+      if (passBaru && passBaru !== passKonfirm) {
+        msgEl.textContent = '❌ Konfirmasi password tidak cocok.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+      }
+
+      let users = await fetchUsersOnline();
+
+      // Check username conflict (if changed)
+      if (newUsername !== oldUsername) {
+        const taken = users.some(u => u.username.toLowerCase() === newUsername.toLowerCase());
+        if (taken || newUsername.toLowerCase() === 'siswa' || newUsername.toLowerCase() === 'admin') {
+          msgEl.textContent = '❌ Username sudah digunakan akun lain.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+        }
+      }
+
+      users = users.map(u => {
+        if (u.username !== oldUsername) return u;
+        const updatedUser = { ...u, username: newUsername, profile: { nama, nrp, pangkat, corps } };
+        if (passBaru) updatedUser.password = passBaru;
+        return updatedUser;
+      });
+
+      await saveUsersOnline(users);
+
+      msgEl.textContent = '✅ Data personel berhasil diperbarui!'; msgEl.style.color='var(--success)'; msgEl.style.background='#f0fdf4'; msgEl.style.display='block';
+
+      // Refresh both lists
+      await renderRingkasanPersonnel();
+      const statEl = document.getElementById('statPersonnel');
+      if (statEl) statEl.textContent = users.filter(u => u.role === 'siswa').length;
+
+      setTimeout(() => closeEditPersonnelModal(), 1600);
+    }
+
+    async function deletePersonnelFromModal() {
+      const username = document.getElementById('modalPersOldUsername').value;
+      if (!confirm(`Hapus permanen akun personel "${username}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+
+      let users = await fetchUsersOnline();
+      users = users.filter(u => u.username !== username);
+      await saveUsersOnline(users);
+
+      closeEditPersonnelModal();
+      await renderRingkasanPersonnel();
+      const statEl = document.getElementById('statPersonnel');
+      if (statEl) statEl.textContent = users.filter(u => u.role === 'siswa').length;
     }
 
     // ==========================================
