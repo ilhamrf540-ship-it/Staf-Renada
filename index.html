@@ -833,11 +833,19 @@
               ✏️ Edit Profil
             </button>
           </div>
-          <div style="display: flex; gap: 2rem; flex-wrap: wrap; font-size: 0.9rem;">
-            <div><strong>Nama:</strong> <span id="profNama">-</span></div>
-            <div><strong>NRP:</strong> <span id="profNrp">-</span></div>
-            <div><strong>Pangkat:</strong> <span id="profPangkat">-</span></div>
-            <div><strong>Corps:</strong> <span id="profCorps">-</span></div>
+          <div style="display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;">
+            <!-- Avatar foto -->
+            <div id="profAvatarWrap" style="position: relative; width: 72px; height: 72px; min-width: 72px;">
+              <img id="profPhoto" src="" alt="Foto" style="display:none; width:72px; height:72px; border-radius:50%; object-fit:cover; border: 3px solid var(--primary); box-shadow: 0 2px 8px rgba(30,58,138,0.18);">
+              <div id="profInitials" style="width:72px; height:72px; border-radius:50%; background: linear-gradient(135deg, var(--primary), #2563eb); display:flex; align-items:center; justify-content:center; font-family:'Outfit',sans-serif; font-weight:700; font-size:1.5rem; color:#fff; letter-spacing:-0.02em;">?</div>
+            </div>
+            <!-- Info teks -->
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem;">
+              <div><strong>Nama:</strong> <span id="profNama">-</span></div>
+              <div><strong>NRP:</strong> <span id="profNrp">-</span></div>
+              <div><strong>Pangkat:</strong> <span id="profPangkat">-</span></div>
+              <div><strong>Corps:</strong> <span id="profCorps">-</span></div>
+            </div>
           </div>
         </div>
 
@@ -852,6 +860,28 @@
             </div>
 
             <form id="editProfileForm" onsubmit="saveProfile(event)">
+
+              <!-- Upload Foto -->
+              <div style="display: flex; align-items: center; gap: 1.25rem; margin-bottom: 1.25rem; padding: 1rem; background: #f8fafc; border-radius: var(--radius-sm); border: 1.5px dashed var(--border-color);">
+                <div style="position: relative;">
+                  <img id="editProfPhotoPreview" src="" alt="" style="display:none; width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--primary); box-shadow: 0 2px 8px rgba(30,58,138,0.15);">
+                  <div id="editProfPhotoInitials" style="width:80px; height:80px; min-width:80px; border-radius:50%; background: linear-gradient(135deg, var(--primary), #2563eb); display:flex; align-items:center; justify-content:center; font-family:'Outfit',sans-serif; font-weight:700; font-size:1.7rem; color:#fff;">?</div>
+                  <!-- Overlay kamera -->
+                  <label for="editProfPhotoInput" style="position:absolute; bottom:0; right:0; width:26px; height:26px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; border:2px solid #fff; font-size:0.8rem; box-shadow:0 1px 4px rgba(0,0,0,0.2);" title="Ganti foto">
+                    📷
+                  </label>
+                </div>
+                <div style="flex:1;">
+                  <p style="font-weight:600; font-size:0.85rem; margin-bottom:0.25rem;">Foto Profil</p>
+                  <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem;">Format: JPG/PNG, maks 2MB. Foto akan tampil di profil dan daftar admin.</p>
+                  <input type="file" id="editProfPhotoInput" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleProfilePhotoChange(this)">
+                  <label for="editProfPhotoInput" class="btn btn-secondary" style="font-size:0.78rem; padding:0.3rem 0.7rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.3rem;">
+                    📂 Pilih Foto
+                  </label>
+                  <button type="button" id="editProfPhotoRemoveBtn" onclick="removeProfilePhoto()" style="display:none; margin-left:0.5rem; background:none; border:none; color:var(--error); font-size:0.78rem; cursor:pointer; font-weight:600;">✕ Hapus foto</button>
+                </div>
+              </div>
+
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                 <div class="form-group" style="margin-bottom: 0;">
                   <label for="editProfNama">Nama Lengkap <span class="required">*</span></label>
@@ -2129,6 +2159,20 @@
       document.getElementById('profNrp').textContent = profile.nrp || '-';
       document.getElementById('profPangkat').textContent = profile.pangkat || '-';
       document.getElementById('profCorps').textContent = profile.corps || '-';
+
+      // Handle avatar foto/inisial
+      const photoEl = document.getElementById('profPhoto');
+      const initialsEl = document.getElementById('profInitials');
+      if (profile.photo) {
+        photoEl.src = profile.photo;
+        photoEl.style.display = 'block';
+        initialsEl.style.display = 'none';
+      } else {
+        photoEl.style.display = 'none';
+        initialsEl.style.display = 'flex';
+        const name = profile.nama || activeUser || '?';
+        initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+      }
     }
 
     function openEditProfile() {
@@ -2148,8 +2192,65 @@
       document.getElementById('editProfPassKonfirm').value = '';
       if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
 
+      // Populate photo preview
+      const preview = document.getElementById('editProfPhotoPreview');
+      const initialsEl = document.getElementById('editProfPhotoInitials');
+      const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
+      if (profile.photo) {
+        preview.src = profile.photo;
+        preview.style.display = 'block';
+        initialsEl.style.display = 'none';
+        removeBtn.style.display = 'inline-block';
+      } else {
+        preview.style.display = 'none';
+        initialsEl.style.display = 'flex';
+        const name = profile.nama || '';
+        initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+        removeBtn.style.display = 'none';
+      }
+      // Clear file input
+      document.getElementById('editProfPhotoInput').value = '';
+
       panel.style.display = 'block';
       panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function handleProfilePhotoChange(input) {
+      const file = input.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Ukuran foto maksimal 2MB.');
+        input.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        const preview = document.getElementById('editProfPhotoPreview');
+        const initialsEl = document.getElementById('editProfPhotoInitials');
+        const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
+        preview.src = dataUrl;
+        preview.style.display = 'block';
+        initialsEl.style.display = 'none';
+        removeBtn.style.display = 'inline-block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeProfilePhoto() {
+      const preview = document.getElementById('editProfPhotoPreview');
+      const initialsEl = document.getElementById('editProfPhotoInitials');
+      const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
+      const savedProfileStr = sessionStorage.getItem('activeProfile');
+      let profile = {};
+      try { profile = JSON.parse(savedProfileStr || '{}'); } catch(e) {}
+      const name = profile.nama || document.getElementById('editProfNama').value || '';
+      initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+      preview.src = '';
+      preview.style.display = 'none';
+      initialsEl.style.display = 'flex';
+      removeBtn.style.display = 'none';
+      document.getElementById('editProfPhotoInput').value = '';
     }
 
     function cancelEditProfile() {
@@ -2191,8 +2292,22 @@
         return;
       }
 
+      // Build updatedProfile including photo
+      const preview = document.getElementById('editProfPhotoPreview');
+      const existingProfileStr = sessionStorage.getItem('activeProfile');
+      let existingProfile = {};
+      try { existingProfile = JSON.parse(existingProfileStr || '{}'); } catch(e) {}
+
+      // Determine final photo: new upload, kept existing, or removed (no src)
+      let photo = existingProfile.photo || null;
+      if (preview && preview.style.display !== 'none' && preview.src && preview.src.startsWith('data:')) {
+        photo = preview.src; // new upload
+      } else if (!preview || preview.style.display === 'none') {
+        photo = null; // explicitly removed
+      }
+
       // Update profile in sessionStorage
-      const updatedProfile = { nama, nrp, pangkat, corps };
+      const updatedProfile = { nama, nrp, pangkat, corps, photo };
       sessionStorage.setItem('activeProfile', JSON.stringify(updatedProfile));
 
       // Update in users database (localStorage / online)
@@ -3264,8 +3379,11 @@
         card.onclick = () => openEditPersonnelModal(student.username);
 
         card.innerHTML = `
-          <div style="width: 42px; height: 42px; min-width:42px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #2563eb); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; font-family:'Outfit',sans-serif; letter-spacing:-0.02em;">
-            ${initials}
+          <div style="width: 42px; height: 42px; min-width:42px; border-radius: 50%; overflow:hidden; flex-shrink:0; border: 2.5px solid var(--primary); box-shadow: 0 1px 4px rgba(30,58,138,0.15);">
+            ${p.photo
+              ? `<img src="${p.photo}" alt="foto" style="width:100%; height:100%; object-fit:cover;">`
+              : `<div style="width:100%; height:100%; background: linear-gradient(135deg, var(--primary), #2563eb); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:0.95rem; font-family:'Outfit',sans-serif;">${initials}</div>`
+            }
           </div>
           <div style="flex:1; min-width:0;">
             <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.nama || '(nama belum diisi)'}</div>
