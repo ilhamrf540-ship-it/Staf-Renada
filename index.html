@@ -708,11 +708,39 @@
       from { opacity: 1; }
       to { opacity: 0; }
     }
+
+    /* Loading Overlay */
+    #loadingOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 10000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      backdrop-filter: blur(3px);
+    }
+    .spinner {
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-
+  
   <div id="toastContainer"></div>
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div id="loadingText" style="font-weight:600; font-family:'Outfit',sans-serif;">Memproses data... 0%</div>
+  </div>
 
   <div class="container">
 
@@ -1638,6 +1666,32 @@
     </div>
   </div>
   <script>
+    function showLoading(text = 'Memproses data...') {
+      const overlay = document.getElementById('loadingOverlay');
+      const textEl = document.getElementById('loadingText');
+      if(overlay && textEl) {
+        overlay.style.display = 'flex';
+        let progress = 0;
+        textEl.innerText = `${text} ${progress}%`;
+        
+        window._loadingInterval = setInterval(() => {
+          progress += Math.floor(Math.random() * 20) + 10;
+          if(progress > 95) progress = 95;
+          textEl.innerText = `${text} ${progress}%`;
+        }, 100);
+      }
+    }
+
+    function hideLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      const textEl = document.getElementById('loadingText');
+      if(overlay) {
+        clearInterval(window._loadingInterval);
+        if(textEl) textEl.innerText = 'Selesai 100%';
+        setTimeout(() => { overlay.style.display = 'none'; }, 300);
+      }
+    }
+
     function showNotification(message, type = 'info') {
       const container = document.getElementById('toastContainer');
       if (!container) return;
@@ -1766,6 +1820,7 @@
     }
 
     async function saveUsersOnline(users) {
+      showLoading("Menyimpan data personel...");
       localStorage.setItem('registeredUsers', JSON.stringify(users));
       const url = getScriptUrl();
       if (!url) return;
@@ -1779,6 +1834,8 @@
         }
       } catch(e) {
         console.error("Error saving users online:", e);
+      } finally {
+        hideLoading();
       }
     }
 
@@ -1845,6 +1902,7 @@
     }
 
     async function saveSubmissionsOnline(submissions) {
+      showLoading("Menyimpan jawaban ujian...");
       localStorage.setItem('submissions', JSON.stringify(submissions));
       const url = getScriptUrl();
       if (!url) return;
@@ -1858,6 +1916,8 @@
         }
       } catch(e) {
         console.error("Error saving submissions online:", e);
+      } finally {
+        hideLoading();
       }
     }
 
@@ -1899,6 +1959,7 @@
     }
 
     async function saveAttendanceOnline(attendance) {
+      showLoading("Menyimpan absensi...");
       localStorage.setItem('attendance', JSON.stringify(attendance));
       const url = getScriptUrl();
       if (!url) return;
@@ -1912,6 +1973,8 @@
         }
       } catch(e) {
         console.error("Error saving attendance online:", e);
+      } finally {
+        hideLoading();
       }
     }
 
@@ -2186,7 +2249,14 @@
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('loginTabsHeader').style.display = 'flex';
         document.getElementById('registerForm').style.display = 'none';
-        document.querySelector('.login-header p').textContent = 'Silakan masuk ke dalam sistem menggunakan akun Anda';
+        
+        try {
+          const settings = JSON.parse(localStorage.getItem('uiSettings'));
+          document.querySelector('.login-header p').textContent = settings?.portalSubtitle ? settings.portalSubtitle : 'Silakan masuk ke dalam sistem menggunakan akun Anda';
+        } catch(e) {
+          document.querySelector('.login-header p').textContent = 'Silakan masuk ke dalam sistem menggunakan akun Anda';
+        }
+        
         switchLoginTab(currentLoginTab);
       }
     }
@@ -2773,10 +2843,12 @@
         existing.push(newAttendance);
         await saveAttendanceOnline(existing);
 
-        alert('✅ Absensi Anda berhasil dikirim ke Operator.');
+        showNotification('Absensi Anda berhasil dikirim ke Operator.', 'success');
+        
+        document.getElementById('studentAbsenForm').reset();
         backToStudentMenu();
       } catch(error) {
-        alert("Gagal mengirim absensi: " + error.message);
+        showNotification("Gagal mengirim absensi: " + error.message, 'error');
         console.error(error);
       }
     }
