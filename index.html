@@ -1102,6 +1102,7 @@
           <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('absensi')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabAbsensi">📅 Rekap Absensi</button>
           <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('hasil')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabHasil">🏆 Hasil Ujian</button>
           <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('sync')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabSync">⚙️ Pengaturan Sync</button>
+          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('tampilan')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabTampilan">🎨 Pengaturan Tampilan</button>
         </div>
 
         <!-- 1. Ringkasan Tab -->
@@ -1526,6 +1527,40 @@
         </div>
         </div> <!-- End adminTab_hasil -->
 
+        <!-- 7. Pengaturan Tampilan Tab -->
+        <div id="adminTab_tampilan" style="display: none;">
+          <div class="dashboard-card" style="border-top: 5px solid var(--accent);">
+            <h3>🎨 Pengaturan Tampilan UI</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Ubah teks judul dan warna tema aplikasi (Berpengaruh pada halaman Siswa dan Login secara global).</p>
+            
+            <div class="form-group">
+              <label for="uiPortalTitle">Judul Utama Portal</label>
+              <input type="text" id="uiPortalTitle" placeholder="Contoh: Portal Evaluasi & Ujian">
+            </div>
+            
+            <div class="form-group">
+              <label for="uiPortalSubtitle">Sub-judul Login</label>
+              <input type="text" id="uiPortalSubtitle" placeholder="Contoh: Silakan masuk ke dalam sistem menggunakan akun Anda">
+            </div>
+
+            <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label for="uiBgColorStart">Warna Background (Atas)</label>
+                <input type="color" id="uiBgColorStart" value="#e2e8f0" style="padding: 0; height: 40px; cursor: pointer;">
+              </div>
+              <div class="form-group">
+                <label for="uiBgColorEnd">Warna Background (Bawah)</label>
+                <input type="color" id="uiBgColorEnd" value="#cbd5e1" style="padding: 0; height: 40px; cursor: pointer;">
+              </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+              <button class="btn btn-primary" onclick="saveUISettings()">Simpan Pengaturan</button>
+              <button class="btn btn-secondary" onclick="resetUISettings()">Kembalikan ke Default</button>
+            </div>
+          </div>
+        </div> <!-- End adminTab_tampilan -->
+
       </div>
 
     </div>
@@ -1811,8 +1846,80 @@
       { id: 5, text: 'Manakah penulisan kata yang baku antara \'apotek\' dan \'apotik\'? Berikan alasan singkat Anda!', keywords: ['apotek'] }
     ];
 
+    // UI Settings Logic
+    function loadUISettings() {
+      try {
+        const settings = JSON.parse(localStorage.getItem('uiSettings'));
+        if (settings) {
+          // Apply Texts
+          const headerTitleEls = document.querySelectorAll('header h1, .login-header h1');
+          headerTitleEls.forEach(el => {
+            if (settings.portalTitle) el.innerText = settings.portalTitle;
+          });
+          
+          const headerSubtitleEls = document.querySelectorAll('header p, .login-header p');
+          headerSubtitleEls.forEach(el => {
+            if (settings.portalSubtitle) el.innerText = settings.portalSubtitle;
+          });
+
+          // Apply Colors
+          if (settings.bgColorStart && settings.bgColorEnd) {
+            document.body.style.background = `linear-gradient(135deg, ${settings.bgColorStart} 0%, ${settings.bgColorEnd} 100%)`;
+          }
+        }
+      } catch(e) {
+        console.error("Gagal load UI Settings", e);
+      }
+    }
+
+    function populateAdminUIForm() {
+      try {
+        const settings = JSON.parse(localStorage.getItem('uiSettings'));
+        if (settings) {
+          if(document.getElementById('uiPortalTitle')) document.getElementById('uiPortalTitle').value = settings.portalTitle || '';
+          if(document.getElementById('uiPortalSubtitle')) document.getElementById('uiPortalSubtitle').value = settings.portalSubtitle || '';
+          if(document.getElementById('uiBgColorStart')) document.getElementById('uiBgColorStart').value = settings.bgColorStart || '#e2e8f0';
+          if(document.getElementById('uiBgColorEnd')) document.getElementById('uiBgColorEnd').value = settings.bgColorEnd || '#cbd5e1';
+        }
+      } catch(e) { }
+    }
+
+    function saveUISettings() {
+      const settings = {
+        portalTitle: document.getElementById('uiPortalTitle').value,
+        portalSubtitle: document.getElementById('uiPortalSubtitle').value,
+        bgColorStart: document.getElementById('uiBgColorStart').value,
+        bgColorEnd: document.getElementById('uiBgColorEnd').value
+      };
+      localStorage.setItem('uiSettings', JSON.stringify(settings));
+      loadUISettings();
+      alert("Pengaturan Tampilan berhasil disimpan!");
+    }
+
+    function resetUISettings() {
+      if(confirm("Anda yakin ingin mengembalikan tampilan ke awal?")) {
+        localStorage.removeItem('uiSettings');
+        document.body.style.background = 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)';
+        
+        const headerTitleEls = document.querySelectorAll('header h1, .login-header h1');
+        headerTitleEls.forEach(el => el.innerText = 'Portal Evaluasi & Ujian');
+        
+        const headerSubtitleEls = document.querySelectorAll('header p, .login-header p');
+        headerSubtitleEls.forEach(el => el.innerText = 'Silakan masuk ke dalam sistem menggunakan akun Anda');
+        
+        if(document.getElementById('uiPortalTitle')) document.getElementById('uiPortalTitle').value = '';
+        if(document.getElementById('uiPortalSubtitle')) document.getElementById('uiPortalSubtitle').value = '';
+        if(document.getElementById('uiBgColorStart')) document.getElementById('uiBgColorStart').value = '#e2e8f0';
+        if(document.getElementById('uiBgColorEnd')) document.getElementById('uiBgColorEnd').value = '#cbd5e1';
+        
+        alert("Pengaturan dikembalikan ke awal!");
+      }
+    }
+
     // Initialize Page
     document.addEventListener("DOMContentLoaded", () => {
+      loadUISettings();
+      populateAdminUIForm();
       // Seed default questions if empty
       if (!localStorage.getItem('exam_questions')) {
         localStorage.setItem('exam_questions', JSON.stringify(DEFAULT_QUESTIONS));
@@ -2134,7 +2241,7 @@
     }
 
     async function switchAdminTab(tabName) {
-      const tabs = ['ringkasan', 'soal', 'personel', 'absensi', 'hasil', 'sync'];
+      const tabs = ['ringkasan', 'soal', 'personel', 'absensi', 'hasil', 'sync', 'tampilan'];
       tabs.forEach(t => {
         const el = document.getElementById('adminTab_' + t);
         if (el) el.style.display = 'none';
