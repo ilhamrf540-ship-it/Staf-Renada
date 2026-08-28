@@ -672,9 +672,47 @@
       from { opacity: 0; transform: translateY(-12px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+
+    /* Toast Notification */
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast-msg {
+      min-width: 250px;
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius-sm);
+      color: white;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      animation: toastSlideIn 0.3s ease-out forwards, toastFadeOut 0.3s ease-in forwards 3s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .toast-success { background-color: var(--success); }
+    .toast-error { background-color: var(--error); }
+    .toast-info { background-color: var(--primary); }
+    
+    @keyframes toastSlideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes toastFadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
   </style>
 </head>
 <body>
+
+  <div id="toastContainer"></div>
 
   <div class="container">
 
@@ -1271,6 +1309,26 @@
         <!-- 3. Kelola Soal Tab -->
         <div id="adminTab_soal" style="display: none;">
           <!-- Management Dynamic Questions Block -->
+          <!-- Exam Schedule Block -->
+          <div class="dashboard-card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <h4 style="margin-bottom: 0;">⏳ Pengaturan Waktu Akses Ujian</h4>
+              <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; cursor: pointer; font-weight: 600; color: var(--error);">
+                <input type="checkbox" id="examOverride" onchange="saveExamSchedule()" style="width: auto;"> Buka Paksa Akses (Abaikan Waktu)
+              </label>
+            </div>
+            <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="examStartTime">Waktu Mulai</label>
+                <input type="datetime-local" id="examStartTime" onchange="saveExamSchedule()">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="examEndTime">Waktu Selesai</label>
+                <input type="datetime-local" id="examEndTime" onchange="saveExamSchedule()">
+              </div>
+            </div>
+          </div>
+
           <div class="dashboard-card">
           <h3>Manajemen Soal Ujian Esai</h3>
           
@@ -1580,6 +1638,26 @@
     </div>
   </div>
   <script>
+    function showNotification(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast-msg toast-${type}`;
+      
+      let icon = 'ℹ️';
+      if(type === 'success') icon = '✅';
+      else if(type === 'error') icon = '⚠️';
+      
+      toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        if(container.contains(toast)) {
+          toast.remove();
+        }
+      }, 3300);
+    }
+
     // State
     let currentRole = null; // 'siswa' or 'admin'
     let currentLoginTab = 'siswa';
@@ -1874,6 +1952,13 @@
 
     function populateAdminUIForm() {
       try {
+        const sched = JSON.parse(localStorage.getItem('examSchedule'));
+        if(sched) {
+          if(document.getElementById('examStartTime')) document.getElementById('examStartTime').value = sched.startTime || '';
+          if(document.getElementById('examEndTime')) document.getElementById('examEndTime').value = sched.endTime || '';
+          if(document.getElementById('examOverride')) document.getElementById('examOverride').checked = sched.overrideOpen || false;
+        }
+
         const settings = JSON.parse(localStorage.getItem('uiSettings'));
         if (settings) {
           if(document.getElementById('uiPortalTitle')) document.getElementById('uiPortalTitle').value = settings.portalTitle || '';
@@ -1882,6 +1967,16 @@
           if(document.getElementById('uiBgColorEnd')) document.getElementById('uiBgColorEnd').value = settings.bgColorEnd || '#cbd5e1';
         }
       } catch(e) { }
+    }
+
+    function saveExamSchedule() {
+      const sched = {
+        startTime: document.getElementById('examStartTime').value,
+        endTime: document.getElementById('examEndTime').value,
+        overrideOpen: document.getElementById('examOverride').checked
+      };
+      localStorage.setItem('examSchedule', JSON.stringify(sched));
+      showNotification("Jadwal ujian diperbarui.", "success");
     }
 
     function saveUISettings() {
@@ -1893,7 +1988,7 @@
       };
       localStorage.setItem('uiSettings', JSON.stringify(settings));
       loadUISettings();
-      alert("Pengaturan Tampilan berhasil disimpan!");
+      showNotification("Pengaturan Tampilan berhasil disimpan!", "success");
     }
 
     function resetUISettings() {
@@ -1912,7 +2007,7 @@
         if(document.getElementById('uiBgColorStart')) document.getElementById('uiBgColorStart').value = '#e2e8f0';
         if(document.getElementById('uiBgColorEnd')) document.getElementById('uiBgColorEnd').value = '#cbd5e1';
         
-        alert("Pengaturan dikembalikan ke awal!");
+        showNotification("Pengaturan dikembalikan ke awal!", "info");
       }
     }
 
@@ -2471,6 +2566,23 @@
       }, 1800);
     }
 
+    function checkExamAccess() {
+      const schedule = JSON.parse(localStorage.getItem('examSchedule') || 'null');
+      if (!schedule) return true;
+      if (schedule.overrideOpen) return true;
+      
+      const now = new Date();
+      if (schedule.startTime && now < new Date(schedule.startTime)) {
+        showNotification("Waktu ujian belum dimulai.", "error");
+        return false;
+      }
+      if (schedule.endTime && now > new Date(schedule.endTime)) {
+        showNotification("Waktu ujian telah berakhir.", "error");
+        return false;
+      }
+      return true;
+    }
+
     function openStudentTab(tab) {
       document.getElementById('studentMenuGrid').style.display = 'none';
       hideError();
@@ -2481,6 +2593,10 @@
         document.getElementById('studentAbsenPanel').style.display = 'block';
         document.getElementById('studentUjianPanel').style.display = 'none';
       } else if (tab === 'ujian') {
+        if(!checkExamAccess()) {
+          document.getElementById('studentMenuGrid').style.display = 'grid';
+          return;
+        }
         document.getElementById('studentAbsenPanel').style.display = 'none';
         document.getElementById('studentUjianPanel').style.display = 'block';
         document.getElementById('studentUjianForm').style.display = 'block';
@@ -3786,9 +3902,9 @@
         if (importedCount > 0) {
           localStorage.setItem('registeredUsers', JSON.stringify(users));
           renderAdminPersonnel();
-          alert(`Berhasil mengimpor ${importedCount} akun personel baru.`);
+          showNotification(`Berhasil mengimpor ${importedCount} akun personel baru.`, "success");
         } else {
-          alert('Gagal mengimpor. Pastikan format berkas menggunakan pemisah pipa (username | password | nama | nrp | pangkat | corps)');
+          showNotification('Gagal mengimpor. Pastikan format berkas menggunakan pemisah pipa.', "error");
         }
         input.value = '';
       };
