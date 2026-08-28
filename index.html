@@ -1276,25 +1276,28 @@
     let currentRole = null; // 'siswa' or 'admin'
     let currentLoginTab = 'siswa';
 
-    // Database Firebase REST API
-    const DB_URL = "https://staf-renada-default-rtdb.asia-southeast1.firebasedatabase.app/";
+    // Database restful-api.dev REST API
+    const USERS_OBJ_ID = "ff8081819ff5b11001a0473360694260";
+    const QUESTIONS_OBJ_ID = "ff8081819ff5b11001a04733bba04261";
+    const SUBMISSIONS_OBJ_ID = "ff8081819ff5b11001a04733ede84263";
+    const API_URL = "https://api.restful-api.dev/objects/";
 
     async function fetchQuestionsOnline() {
       try {
-        const response = await fetch(DB_URL + 'questions.json');
+        const response = await fetch(API_URL + QUESTIONS_OBJ_ID);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-        if (data && !data.error) {
-          const qList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
-          const validQs = qList.filter(q => q && typeof q === 'object' && q.id);
-          localStorage.setItem('exam_questions', JSON.stringify(validQs));
-          return validQs;
-        } else {
-          await saveQuestionsOnline(DEFAULT_QUESTIONS);
-          return DEFAULT_QUESTIONS;
+        const resData = await response.json();
+        if (resData && resData.data && Array.isArray(resData.data.list)) {
+          const qList = resData.data.list.filter(q => q && typeof q === 'object' && q.id);
+          if (qList.length > 0) {
+            localStorage.setItem('exam_questions', JSON.stringify(qList));
+            return qList;
+          }
         }
+        await saveQuestionsOnline(DEFAULT_QUESTIONS);
+        return DEFAULT_QUESTIONS;
       } catch (e) {
         console.error("Error fetching questions online:", e);
         try {
@@ -1312,10 +1315,13 @@
     async function saveQuestionsOnline(questions) {
       try {
         localStorage.setItem('exam_questions', JSON.stringify(questions));
-        const response = await fetch(DB_URL + 'questions.json', {
+        const response = await fetch(API_URL + QUESTIONS_OBJ_ID, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(questions)
+          body: JSON.stringify({
+            name: "StafRenadaQuestions",
+            data: { list: questions }
+          })
         });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -1327,13 +1333,13 @@
 
     async function fetchUsersOnline() {
       try {
-        const response = await fetch(DB_URL + 'users.json');
+        const response = await fetch(API_URL + USERS_OBJ_ID);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-        if (data && !data.error) {
-          const userList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
+        const resData = await response.json();
+        if (resData && resData.data && Array.isArray(resData.data.list)) {
+          const userList = resData.data.list;
           const validUsers = userList.filter(u => u && typeof u === 'object' && u.username);
           localStorage.setItem('registeredUsers', JSON.stringify(validUsers));
           return validUsers;
@@ -1357,10 +1363,13 @@
     async function saveUsersOnline(users) {
       try {
         localStorage.setItem('registeredUsers', JSON.stringify(users));
-        const response = await fetch(DB_URL + 'users.json', {
+        const response = await fetch(API_URL + USERS_OBJ_ID, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(users)
+          body: JSON.stringify({
+            name: "StafRenadaUsers",
+            data: { list: users }
+          })
         });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -1372,13 +1381,13 @@
 
     async function fetchSubmissionsOnline() {
       try {
-        const response = await fetch(DB_URL + 'submissions.json');
+        const response = await fetch(API_URL + SUBMISSIONS_OBJ_ID);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-        if (data && !data.error) {
-          const subList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
+        const resData = await response.json();
+        if (resData && resData.data && Array.isArray(resData.data.list)) {
+          const subList = resData.data.list;
           const validSubs = subList.filter(s => s && typeof s === 'object' && s.username);
           localStorage.setItem('submissions', JSON.stringify(validSubs));
           return validSubs;
@@ -1400,10 +1409,13 @@
     async function saveSubmissionsOnline(submissions) {
       try {
         localStorage.setItem('submissions', JSON.stringify(submissions));
-        const response = await fetch(DB_URL + 'submissions.json', {
+        const response = await fetch(API_URL + SUBMISSIONS_OBJ_ID, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(submissions)
+          body: JSON.stringify({
+            name: "StafRenadaSubmissions",
+            data: { list: submissions }
+          })
         });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
