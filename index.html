@@ -1184,6 +1184,40 @@
           </div>
         </div>
 
+        <!-- Attendance Table Card -->
+        <div class="dashboard-card" style="border-top: 5px solid var(--accent);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+            <h3>Rekapitulasi Absensi Harian Personel</h3>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="btn btn-secondary" onclick="exportAttendanceToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+                📊 Export Absen ke Excel
+              </button>
+              <button class="btn btn-danger" onclick="clearAllAttendance()" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                ⚠️ Hapus Semua Absen
+              </button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tanggal & Waktu Absen</th>
+                  <th>NRP</th>
+                  <th>Nama Lengkap</th>
+                  <th>Pangkat</th>
+                  <th>Corps</th>
+                  <th>Kehadiran</th>
+                  <th>Keterangan</th>
+                </tr>
+              </thead>
+              <tbody id="attendanceTableBody">
+                <!-- Attendance rows inserted dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- Submissions Table Card -->
         <div class="dashboard-card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
@@ -1205,12 +1239,11 @@
             <table>
               <thead>
                 <tr>
+                  <th>Tanggal & Waktu Ujian</th>
                   <th>NRP</th>
                   <th>Nama Lengkap</th>
                   <th>Pangkat</th>
                   <th>Corps</th>
-                  <th>Kehadiran</th>
-                  <th>Tanggal</th>
                   <th>Nilai</th>
                   <th>Aksi</th>
                 </tr>
@@ -2267,8 +2300,67 @@
       await saveQuestionsOnline(questions);
       renderAdminQuestions();
     }
+    function formatDateTime(isoString) {
+      if (!isoString) return '-';
+      try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return isoString;
+        const dateStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        return `${dateStr} - ${timeStr} WIB`;
+      } catch(e) {
+        return isoString;
+      }
+    }
+
+    async function loadAdminAttendance() {
+      const attendance = await fetchAttendanceOnline();
+      
+      // Sort by timestamp descending
+      attendance.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      const tbody = document.getElementById('attendanceTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      attendance.forEach(att => {
+        const tr = document.createElement('tr');
+        
+        let colorStyle = 'background: #dcfce7; color: #15803d;'; // Hadir green
+        if (att.kehadiran === 'Sakit') colorStyle = 'background: #fef9c3; color: #a16207;'; // Yellow
+        if (att.kehadiran === 'Izin') colorStyle = 'background: #e0f2fe; color: #0369a1;'; // Blue
+        if (att.kehadiran === 'Alpa') colorStyle = 'background: #fee2e2; color: #b91c1c;'; // Red
+
+        tr.innerHTML = `
+          <td style="font-size:0.85rem; font-weight:600;">${formatDateTime(att.timestamp)}</td>
+          <td><strong>${att.nrp || '-'}</strong></td>
+          <td style="font-weight:600; color:var(--text-dark);">${att.nama}</td>
+          <td>${att.pangkat || '-'}</td>
+          <td>${att.corps || '-'}</td>
+          <td><span class="badge" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: var(--radius-sm); ${colorStyle}">${att.kehadiran}</span></td>
+          <td style="font-size:0.85rem; color:var(--text-muted);">${att.keterangan || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (attendance.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada absensi harian yang masuk hari ini.</td></tr>`;
+      }
+    }
+
+    async function clearAllAttendance() {
+      if (confirm('Apakah Anda yakin ingin menghapus seluruh data rekap absensi? Tindakan ini tidak dapat dibatalkan.')) {
+        localStorage.removeItem('attendance');
+        await saveAttendanceOnline([]);
+        await loadAdminAttendance();
+      }
+    }
+
     // Load Admin Submission Dashboard
-    function loadAdminDashboard() {
+    async function loadAdminDashboard() {
+      // Load attendance table first
+      await loadAdminAttendance();
+
       const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
       
       // Sort submissions by timestamp (id) descending (newest first)
@@ -2286,14 +2378,16 @@
         if (sub.score >= 70) passedCount++;
         else failedCount++;
 
+        const prof = sub.profile || { nama: sub.nama, nrp: sub.nis, pangkat: sub.kelas, corps: sub.jurusan };
+        const examTimeStr = sub.timestamp ? formatDateTime(sub.timestamp) : `${formatDate(sub.tanggal)} pukul ${sub.jam || '--:--'} WIB`;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><strong>${sub.nis}</strong></td>
-          <td>${sub.nama}</td>
-          <td>${sub.kelas}</td>
-          <td>${sub.jurusan}</td>
-          <td><span class="user-role" style="background:#e2e8f0; color:#334155;">${sub.kehadiran}</span></td>
-          <td>${formatDate(sub.tanggal)} pukul ${sub.jam || '--:--'}</td>
+          <td style="font-size:0.85rem; font-weight:600;">${examTimeStr}</td>
+          <td><strong>${prof.nrp || '-'}</strong></td>
+          <td>${prof.nama}</td>
+          <td>${prof.pangkat || '-'}</td>
+          <td>${prof.corps || '-'}</td>
           <td>
             <span class="score-badge ${sub.score >= 70 ? 'passed' : 'failed'}">${sub.score}</span>
           </td>
@@ -2307,7 +2401,7 @@
       });
 
       if (submissions.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada hasil ujian yang terkirim.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada hasil ujian yang terkirim.</td></tr>`;
       }
 
       // Update statistics panel widgets
@@ -2547,6 +2641,51 @@
       const a = document.createElement('a');
       a.href = url;
       a.download = 'Rekap_Hasil_Ujian.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function exportAttendanceToExcel() {
+      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
+      if (attendance.length === 0) return alert('Tidak ada rekap absensi untuk diexport.');
+      
+      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><meta charset="utf-8"></head>
+      <body>
+      <table border="1">
+        <thead>
+          <tr>
+            <th style="background-color: #1e3a8a; color: white;">Tanggal & Waktu Absen</th>
+            <th style="background-color: #1e3a8a; color: white;">NRP</th>
+            <th style="background-color: #1e3a8a; color: white;">Nama Lengkap</th>
+            <th style="background-color: #1e3a8a; color: white;">Pangkat</th>
+            <th style="background-color: #1e3a8a; color: white;">Corps</th>
+            <th style="background-color: #1e3a8a; color: white;">Kehadiran</th>
+            <th style="background-color: #1e3a8a; color: white;">Keterangan</th>
+          </tr>
+        </thead>
+        <tbody>`;
+        
+      attendance.forEach(att => {
+        html += `<tr>
+          <td>${formatDateTime(att.timestamp)}</td>
+          <td>${att.nrp || '-'}</td>
+          <td>${att.nama}</td>
+          <td>${att.pangkat || '-'}</td>
+          <td>${att.corps || '-'}</td>
+          <td>${att.kehadiran}</td>
+          <td>${att.keterangan || '-'}</td>
+        </tr>`;
+      });
+      
+      html += `</tbody></table></body></html>`;
+      
+      const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Rekap_Absensi_Personel.xls';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
