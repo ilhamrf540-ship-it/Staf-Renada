@@ -1304,7 +1304,15 @@
     async function fetchQuestionsOnline() {
       const url = getScriptUrl();
       if (!url) {
-        return JSON.parse(localStorage.getItem('exam_questions') || '[]');
+        try {
+          const localData = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+          if (Array.isArray(localData)) {
+            const validLocal = localData.filter(q => q && typeof q === 'object' && q.id);
+            if (validLocal.length > 0) return validLocal;
+          }
+        } catch(err) {}
+        localStorage.setItem('exam_questions', JSON.stringify(DEFAULT_QUESTIONS));
+        return DEFAULT_QUESTIONS;
       }
       try {
         const response = await fetch(url + "?action=getQuestions");
@@ -1323,7 +1331,15 @@
         return DEFAULT_QUESTIONS;
       } catch (e) {
         console.error("Error fetching questions online:", e);
-        return JSON.parse(localStorage.getItem('exam_questions') || '[]');
+        try {
+          const localData = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+          if (Array.isArray(localData)) {
+            const validLocal = localData.filter(q => q && typeof q === 'object' && q.id);
+            if (validLocal.length > 0) return validLocal;
+          }
+        } catch(err) {}
+        localStorage.setItem('exam_questions', JSON.stringify(DEFAULT_QUESTIONS));
+        return DEFAULT_QUESTIONS;
       }
     }
 
@@ -1347,7 +1363,14 @@
     async function fetchUsersOnline() {
       const url = getScriptUrl();
       if (!url) {
-        return JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+        try {
+          const localData = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(u => u && typeof u === 'object' && u.username);
+          }
+        } catch(err) {}
+        localStorage.setItem('registeredUsers', JSON.stringify([]));
+        return [];
       }
       try {
         const response = await fetch(url + "?action=getUsers");
@@ -1396,7 +1419,14 @@
     async function fetchSubmissionsOnline() {
       const url = getScriptUrl();
       if (!url) {
-        return JSON.parse(localStorage.getItem('submissions') || '[]');
+        try {
+          const localData = JSON.parse(localStorage.getItem('submissions') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(s => s && typeof s === 'object' && s.username);
+          }
+        } catch(err) {}
+        localStorage.setItem('submissions', JSON.stringify([]));
+        return [];
       }
       try {
         const response = await fetch(url + "?action=getSubmissions");
