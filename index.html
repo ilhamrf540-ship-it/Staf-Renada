@@ -814,205 +814,154 @@
 
       <!-- STUDENT PORTAL (Exam & Attendance form) -->
       <div id="studentPortal" style="display: none;">
-        <!-- Form Header -->
-        <header>
-          <h1>Form Absensi dan Ujian Personel</h1>
-          <p>Silakan isi identitas dan absensi dengan benar sebelum mengerjakan seluruh soal. Pastikan seluruh jawaban telah diperiksa sebelum mengirimkan formulir.</p>
+        <!-- Student Dashboard Header -->
+        <header style="margin-bottom: 2rem;">
+          <h1>Dashboard Personel / Siswa</h1>
+          <p>Selamat datang di Portal Absensi & Ujian. Silakan pilih menu di bawah ini untuk mengisi absensi harian atau memulai ujian esai militer.</p>
         </header>
 
-        <!-- Stepper Navigation -->
-        <div class="stepper" id="stepper">
-          <div class="step-item active" id="step-1-indicator">
-            <div class="step-number">1</div>
-            <span>Identitas</span>
+        <!-- Profile card -->
+        <div class="dashboard-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--primary-light) 0%, #ffffff 100%); border-left: 5px solid var(--primary);">
+          <h3 style="font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem;">👤 Profil Aktif Personel</h3>
+          <div style="display: flex; gap: 2rem; flex-wrap: wrap; font-size: 0.9rem;">
+            <div><strong>Nama:</strong> <span id="profNama">-</span></div>
+            <div><strong>NRP:</strong> <span id="profNrp">-</span></div>
+            <div><strong>Pangkat:</strong> <span id="profPangkat">-</span></div>
+            <div><strong>Corps:</strong> <span id="profCorps">-</span></div>
           </div>
-          <div class="step-item" id="step-2-indicator">
-            <div class="step-number">2</div>
-            <span>Absensi</span>
+        </div>
+
+        <!-- Student Main Grid -->
+        <div class="stats-grid" id="studentMenuGrid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 2rem;">
+          <div class="stat-card" style="cursor: pointer; padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center; border-top: 5px solid var(--accent);" onclick="openStudentTab('absen')">
+            <span style="font-size: 3rem; margin-bottom: 1rem;">📅</span>
+            <h3 style="font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem; color: var(--accent);">Absensi Harian</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Lakukan pengisian daftar hadir harian personel TNI aktif di sini.</p>
+            <button class="btn btn-accent" style="width: 100%; font-size: 0.85rem;">Isi Absensi Harian</button>
           </div>
-          <div class="step-item" id="step-3-indicator">
-            <div class="step-number">3</div>
-            <span>Soal Ujian</span>
+          
+          <div class="stat-card" style="cursor: pointer; padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center; border-top: 5px solid var(--primary);" onclick="openStudentTab('ujian')">
+            <span style="font-size: 3rem; margin-bottom: 1rem;">✏️</span>
+            <h3 style="font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem; color: var(--primary);">Ujian Esai Militer</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Uji pemahaman dan kemampuan militer Anda dengan mengerjakan ujian esai aktif.</p>
+            <button class="btn btn-primary" style="width: 100%; font-size: 0.85rem;">Mulai Ujian Esai</button>
           </div>
         </div>
 
         <!-- Error Alert Box -->
-        <div class="error-alert" id="errorBox">
+        <div class="error-alert" id="errorBox" style="margin-bottom: 1.5rem;">
           <strong>⚠️ Kesalahan:</strong> <span id="errorMsg">Harap isi bidang yang wajib diisi.</span>
         </div>
 
-        <!-- Student Exam Form -->
-        <form id="examForm" novalidate>
-          
-          <!-- Section 1: Identitas -->
-          <div class="form-panel active" id="panel-1">
-            <div class="section-title">
-              <span>📝</span> Identitas Personel
-            </div>
-            
-            <div class="form-group">
-              <label for="namaLengkap">Nama Lengkap Personel <span class="required">*</span></label>
-              <input type="text" id="namaLengkap" name="namaLengkap" placeholder="Masukkan nama lengkap Anda" required>
-            </div>
-
-            <div class="form-group">
-              <label for="nisNisn">NRP <span class="required">*</span></label>
-              <input type="text" id="nisNisn" name="nisNisn" placeholder="Masukkan nomor NRP Anda" required>
-            </div>
-
-            <div class="form-group">
-              <label for="kelas">Pangkat <span class="required">*</span></label>
-              <select id="kelas" name="kelas" required>
-                <option value="" disabled selected>Pilih Pangkat</option>
-                <option value="Letda">Letda (Letnan Dua)</option>
-                <option value="Lettu">Lettu (Letnan Satu)</option>
-                <option value="Kapten">Kapten</option>
-                <option value="Mayor">Mayor</option>
-                <option value="Letkol">Letkol (Letnan Kolonel)</option>
-                <option value="Kolonel">Kolonel</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="jurusan">Corps <span class="required">*</span></label>
-              <select id="jurusan" name="jurusan" required>
-                <option value="" disabled selected>Pilih Corps</option>
-                <option value="Infanteri (Inf)">Infanteri (Inf)</option>
-                <option value="Armed (Arm)">Armed (Arm)</option>
-                <option value="Arhanud (Arh)">Arhanud (Arh)</option>
-                <option value="Kavaleri (Kav)">Kavaleri (Kav)</option>
-                <option value="Zeni (Czi)">Zeni (Czi)</option>
-                <option value="Penerbangan (Cpn)">Penerbangan (Cpn)</option>
-                <option value="Komunikasi dan Elektronika (Cke)">Komunikasi dan Elektronika (Cke)</option>
-                <option value="Peralatan (Cpl)">Peralatan (Cpl)</option>
-                <option value="Pembekalan Angkutan (Cba)">Pembekalan Angkutan (Cba)</option>
-                <option value="Kesehatan Militer (Ckm)">Kesehatan Militer (Ckm)</option>
-                <option value="Polisi Militer (Cpm)">Polisi Militer (Cpm)</option>
-                <option value="Ajudan Jenderal (Caj)">Ajudan Jenderal (Caj)</option>
-                <option value="Topografi (Ctp)">Topografi (Ctp)</option>
-                <option value="Keuangan (Cku)">Keuangan (Cku)</option>
-                <option value="Hukum (Chk)">Hukum (Chk)</option>
-              </select>
-            </div>
-
-            <div class="button-group">
-              <div></div>
-              <button type="button" class="btn btn-primary btn-next" onclick="navigateTo(2)">
-                Selanjutnya <span>➔</span>
-              </button>
-            </div>
+        <!-- FORM ABSENSI (Separate panel) -->
+        <div id="studentAbsenPanel" class="dashboard-card" style="display: none; border-top: 6px solid var(--accent);">
+          <div class="section-title" style="color: var(--accent); margin-bottom: 1.5rem; font-size: 1.25rem;">
+            <span>📅</span> Form Absensi Harian Personel
           </div>
-
-          <!-- Section 2: Absensi -->
-          <div class="form-panel" id="panel-2">
-            <div class="section-title">
-              <span>📅</span> Absensi
-            </div>
-
+          
+          <form id="studentAbsenForm" onsubmit="submitAttendance(event)">
             <div class="form-group">
               <label>Status Kehadiran <span class="required">*</span></label>
               <div class="attendance-grid">
                 <label class="option-card" id="label-hadir">
-                  <input type="radio" name="kehadiran" value="Hadir" required onclick="updateRadioCard(this)">
+                  <input type="radio" name="student_kehadiran" value="Hadir" required onclick="updateRadioCard(this)">
                   <span>Hadir</span>
                 </label>
                 <label class="option-card" id="label-izin">
-                  <input type="radio" name="kehadiran" value="Izin" required onclick="updateRadioCard(this)">
+                  <input type="radio" name="student_kehadiran" value="Izin" required onclick="updateRadioCard(this)">
                   <span>Izin</span>
                 </label>
                 <label class="option-card" id="label-sakit">
-                  <input type="radio" name="kehadiran" value="Sakit" required onclick="updateRadioCard(this)">
+                  <input type="radio" name="student_kehadiran" value="Sakit" required onclick="updateRadioCard(this)">
                   <span>Sakit</span>
                 </label>
                 <label class="option-card" id="label-alpa">
-                  <input type="radio" name="kehadiran" value="Alpa" required onclick="updateRadioCard(this)">
+                  <input type="radio" name="student_kehadiran" value="Alpa" required onclick="updateRadioCard(this)">
                   <span>Alpa</span>
                 </label>
               </div>
             </div>
 
             <div class="form-group">
-              <label for="tanggal">Tanggal Pelaksanaan <span class="required">*</span></label>
-              <input type="date" id="tanggal" name="tanggal" required readonly>
+              <label for="student_tanggal">Tanggal Pelaksanaan <span class="required">*</span></label>
+              <input type="date" id="student_tanggal" name="student_tanggal" required readonly>
             </div>
 
             <div class="form-group">
-              <label for="keterangan">Keterangan <span class="text-muted">(Opsional)</span></label>
-              <textarea id="keterangan" name="keterangan" placeholder="Masukkan keterangan tambahan jika diperlukan..."></textarea>
+              <label for="student_keterangan">Keterangan <span class="text-muted">(Opsional)</span></label>
+              <textarea id="student_keterangan" name="student_keterangan" placeholder="Masukkan keterangan tambahan jika diperlukan..."></textarea>
             </div>
 
             <div class="button-group">
-              <button type="button" id="btnBackToStep1" class="btn btn-secondary btn-prev" onclick="navigateTo(1)">
-                <span>⬅</span> Kembali
+              <button type="button" class="btn btn-secondary" onclick="backToStudentMenu()">
+                <span>⬅</span> Kembali ke Menu
               </button>
-              <button type="button" class="btn btn-primary btn-next" onclick="navigateTo(3)">
-                Selanjutnya <span>➔</span>
+              <button type="submit" class="btn btn-accent">
+                Kirim Absensi ✓
               </button>
             </div>
+          </form>
+        </div>
+
+        <!-- FORM UJIAN ESAI (Separate panel) -->
+        <div id="studentUjianPanel" class="dashboard-card" style="display: none; border-top: 6px solid var(--primary);">
+          <div class="section-title" style="color: var(--primary); margin-bottom: 1.5rem; font-size: 1.25rem;">
+            <span>✏️</span> Ujian Esai Militer Aktif
           </div>
-
-          <!-- Section 3: Daftar Soal Ujian -->
-          <div class="form-panel" id="panel-3">
-            <div class="section-title">
-              <span>✏️</span> Soal Ujian Esai
-            </div>
-
+          
+          <form id="studentUjianForm" onsubmit="submitExam(event)">
             <!-- Dynamic Question fields inserted here -->
             <div id="dynamicQuestionsContainer"></div>
 
             <div class="button-group">
-              <button type="button" class="btn btn-secondary btn-prev" onclick="navigateTo(2)">
-                <span>⬅</span> Kembali
+              <button type="button" class="btn btn-secondary" onclick="backToStudentMenu()">
+                <span>⬅</span> Kembali ke Menu
               </button>
-              <button type="button" class="btn btn-accent" onclick="submitExam()">
-                Kirim Jawaban ✓
+              <button type="submit" class="btn btn-primary">
+                Kirim Jawaban Ujian ✓
               </button>
             </div>
+          </form>
+
+          <!-- Student Exam Score View -->
+          <div class="result-card" id="resultCard" style="display: none; margin-top: 2rem;">
+            <h2>Ujian Selesai!</h2>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">Hasil pengerjaan Anda telah disimpan oleh sistem.</p>
+            
+            <div class="score-circle">
+              <div class="number" id="finalScore">0</div>
+              <div class="label">Nilai Anda</div>
+            </div>
+
+            <div id="passingBadge" class="badge">LULUS</div>
+
+            <div class="result-summary">
+              <div class="summary-row">
+                <span class="label">Nama Lengkap</span>
+                <span class="value" id="resNama">-</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">NRP</span>
+                <span class="value" id="resNis">-</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Pangkat & Corps</span>
+                <span class="value" id="resKelasJurusan">-</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Tanggal Ujian</span>
+                <span class="value" id="resTanggal">-</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Jawaban Benar</span>
+                <span class="value" id="resBenar">0 / 0</span>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="backToStudentMenu()" style="width: 100%; margin-top: 1rem;">
+              Kembali ke Menu Utama
+            </button>
           </div>
-        </form>
-
-        <!-- Student Exam Score View -->
-        <div class="result-card" id="resultCard">
-          <h2>Ujian Selesai!</h2>
-          <p style="color: var(--text-muted); margin-bottom: 1rem;">Hasil pengerjaan Anda telah disimpan oleh sistem.</p>
-          
-          <div class="score-circle">
-            <div class="number" id="finalScore">0</div>
-            <div class="label">Nilai Anda</div>
-          </div>
-
-          <div id="passingBadge" class="badge">LULUS</div>
-
-          <div class="result-summary">
-            <div class="summary-row">
-              <span class="label">Nama Lengkap</span>
-              <span class="value" id="resNama">-</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">NRP</span>
-              <span class="value" id="resNis">-</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">Pangkat & Corps</span>
-              <span class="value" id="resKelasJurusan">-</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">Status Kehadiran</span>
-              <span class="value" id="resKehadiran">-</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">Tanggal Pelaksanaan</span>
-              <span class="value" id="resTanggal">-</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">Jawaban Benar</span>
-              <span class="value" id="resBenar">0 / 0</span>
-            </div>
-          </div>
-
-          <button type="button" class="btn btn-primary" onclick="resetForm()">
-            Kerjakan Ulang Ujian ↺
-          </button>
         </div>
       </div>
 
@@ -1469,6 +1418,61 @@
         console.error("Error saving submissions online:", e);
       }
     }
+
+    async function fetchAttendanceOnline() {
+      const url = getScriptUrl();
+      if (!url) {
+        try {
+          const localData = JSON.parse(localStorage.getItem('attendance') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(a => a && typeof a === 'object' && a.username);
+          }
+        } catch(err) {}
+        localStorage.setItem('attendance', JSON.stringify([]));
+        return [];
+      }
+      try {
+        const response = await fetch(url + "?action=getAttendance");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const attList = await response.json();
+        if (Array.isArray(attList)) {
+          const validAtt = attList.filter(a => a && typeof a === 'object' && a.username);
+          localStorage.setItem('attendance', JSON.stringify(validAtt));
+          return validAtt;
+        }
+        throw new Error("Invalid attendance data");
+      } catch(e) {
+        console.error("Error fetching attendance online:", e);
+        try {
+          const localData = JSON.parse(localStorage.getItem('attendance') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(a => a && typeof a === 'object' && a.username);
+          }
+        } catch(err) {}
+        localStorage.setItem('attendance', JSON.stringify([]));
+        return [];
+      }
+    }
+
+    async function saveAttendanceOnline(attendance) {
+      localStorage.setItem('attendance', JSON.stringify(attendance));
+      const url = getScriptUrl();
+      if (!url) return;
+      try {
+        const response = await fetch(url + "?action=saveAttendance", {
+          method: 'POST',
+          body: JSON.stringify(attendance)
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } catch(e) {
+        console.error("Error saving attendance online:", e);
+      }
+    }
+
     // Default mock questions to seed localStorage on first load
     const DEFAULT_QUESTIONS = [
       { id: 1, text: 'Sebutkan lambang sila ketiga Pancasila dan jelaskan maknanya!', keywords: ['beringin', 'pohon'] },
@@ -1489,6 +1493,7 @@
       await fetchQuestionsOnline();
       await fetchUsersOnline();
       await fetchSubmissionsOnline();
+      await fetchAttendanceOnline();
 
       // Check active session if page refreshed
       const savedRole = sessionStorage.getItem('activeRole');
@@ -1788,11 +1793,8 @@
         studentPortal.style.display = 'block';
         adminPortal.style.display = 'none';
         
-        await fetchQuestionsOnline();
-        // Render dynamic student exam textareas
-        renderStudentQuestions();
-        
-        resetForm();
+        loadStudentProfile();
+        backToStudentMenu();
       } else {
         studentPortal.style.display = 'none';
         adminPortal.style.display = 'block';
@@ -1804,6 +1806,64 @@
         await fetchSubmissionsOnline();
         loadAdminDashboard();
       }
+    }
+
+    function loadStudentProfile() {
+      const activeUser = sessionStorage.getItem('activeUsername');
+      const savedProfileStr = sessionStorage.getItem('activeProfile');
+      let profile = {};
+      if (savedProfileStr) {
+        try { profile = JSON.parse(savedProfileStr); } catch(e) {}
+      }
+      
+      document.getElementById('profNama').textContent = profile.nama || activeUser || '-';
+      document.getElementById('profNrp').textContent = profile.nrp || '-';
+      document.getElementById('profPangkat').textContent = profile.pangkat || '-';
+      document.getElementById('profCorps').textContent = profile.corps || '-';
+    }
+
+    function openStudentTab(tab) {
+      document.getElementById('studentMenuGrid').style.display = 'none';
+      hideError();
+      
+      setTodayDate();
+      
+      if (tab === 'absen') {
+        document.getElementById('studentAbsenPanel').style.display = 'block';
+        document.getElementById('studentUjianPanel').style.display = 'none';
+      } else if (tab === 'ujian') {
+        document.getElementById('studentAbsenPanel').style.display = 'none';
+        document.getElementById('studentUjianPanel').style.display = 'block';
+        document.getElementById('studentUjianForm').style.display = 'block';
+        document.getElementById('resultCard').style.display = 'none';
+        renderStudentQuestions();
+      }
+    }
+
+    function backToStudentMenu() {
+      document.getElementById('studentMenuGrid').style.display = 'grid';
+      document.getElementById('studentAbsenPanel').style.display = 'none';
+      document.getElementById('studentUjianPanel').style.display = 'none';
+      document.getElementById('studentAbsenForm').reset();
+      document.getElementById('studentUjianForm').reset();
+      
+      const cards = document.querySelectorAll('.option-card');
+      cards.forEach(c => c.classList.remove('selected'));
+      
+      hideError();
+    }
+    
+    function setTodayDate() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      let mm = today.getMonth() + 1;
+      let dd = today.getDate();
+      if (dd < 10) dd = '0' + dd;
+      if (mm < 10) mm = '0' + mm;
+      const formattedToday = yyyy + '-' + mm + '-' + dd;
+      
+      const dateEl = document.getElementById('student_tanggal');
+      if (dateEl) dateEl.value = formattedToday;
     }
 
     function handleLogout() {
@@ -1822,28 +1882,6 @@
       hideError();
     }
 
-    // Stepper Navigation
-    function navigateTo(step) {
-      if (step === 2 && !validateSection1()) return;
-      if (step === 3 && !validateSection2()) return;
-
-      hideError();
-
-      for (let i = 1; i <= 3; i++) {
-        document.getElementById(`panel-${i}`).classList.remove('active');
-        const indicator = document.getElementById(`step-${i}-indicator`);
-        if (indicator) {
-          indicator.classList.remove('active', 'completed');
-          if (i < step) {
-            indicator.classList.add('completed');
-          } else if (i === step) {
-            indicator.classList.add('active');
-          }
-        }
-      }
-      document.getElementById(`panel-${step}`).classList.add('active');
-    }
-
     // Validation
     function showError(msg) {
       const errorBox = document.getElementById('errorBox');
@@ -1854,32 +1892,6 @@
 
     function hideError() {
       document.getElementById('errorBox').style.display = 'none';
-    }
-
-    function validateSection1() {
-      const nama = document.getElementById('namaLengkap').value.trim();
-      const nis = document.getElementById('nisNisn').value.trim();
-      const kelas = document.getElementById('kelas').value;
-      const jurusan = document.getElementById('jurusan').value;
-      if (!nama || !nis || !kelas || !jurusan) {
-        showError("Harap lengkapi semua bidang pada bagian Identitas.");
-        return false;
-      }
-      return true;
-    }
-
-    function validateSection2() {
-      const kehadiran = document.querySelector('input[name="kehadiran"]:checked');
-      const tanggal = document.getElementById('tanggal').value;
-      if (!kehadiran) {
-        showError("Silakan pilih status kehadiran Anda.");
-        return false;
-      }
-      if (!tanggal) {
-        showError("Harap tentukan tanggal pelaksanaan.");
-        return false;
-      }
-      return true;
     }
 
     function validateSection3() {
@@ -1954,8 +1966,59 @@
       reader.readAsDataURL(file);
     };
 
+    // Attendance Submission & online database saving
+    async function submitAttendance(event) {
+      if (event) event.preventDefault();
+      try {
+        const activeUser = sessionStorage.getItem('activeUsername');
+        const savedProfileStr = sessionStorage.getItem('activeProfile');
+        let profile = {};
+        if (savedProfileStr) {
+          try { profile = JSON.parse(savedProfileStr); } catch(e) {}
+        }
+
+        const kehadiranEl = document.querySelector('input[name="student_kehadiran"]:checked');
+        if (!kehadiranEl) {
+          showError("Silakan pilih status kehadiran Anda.");
+          return;
+        }
+        const kehadiran = kehadiranEl.value;
+        const tanggal = document.getElementById('student_tanggal').value;
+        const keterangan = document.getElementById('student_keterangan').value.trim();
+
+        if (!tanggal) {
+          showError("Harap tentukan tanggal pelaksanaan.");
+          return;
+        }
+
+        hideError();
+
+        const newAttendance = {
+          timestamp: new Date().toISOString(),
+          username: activeUser,
+          nama: profile.nama || activeUser || "",
+          nrp: profile.nrp || "",
+          pangkat: profile.pangkat || "",
+          corps: profile.corps || "",
+          kehadiran,
+          keterangan
+        };
+
+        const existing = await fetchAttendanceOnline();
+        existing.push(newAttendance);
+        await saveAttendanceOnline(existing);
+
+        alert('✅ Absensi Anda berhasil dikirim ke Operator.');
+        backToStudentMenu();
+      } catch(error) {
+        alert("Gagal mengirim absensi: " + error.message);
+        console.error(error);
+      }
+    }
+
     // Exam Submission & online database saving
-    async function submitExam() {
+    async function submitExam(event) {
+      if (event) event.preventDefault();
       try {
         const questions = await fetchQuestionsOnline();
         if (questions.length === 0) {
@@ -1963,16 +2026,21 @@
           return;
         }
 
-        if (!validateSection1() || !validateSection2() || !validateSection3()) return;
+        if (!validateSection3()) return;
         hideError();
 
-        const nama = document.getElementById('namaLengkap').value.trim();
-        const nis = document.getElementById('nisNisn').value.trim();
-        const kelas = document.getElementById('kelas').value;
-        const jurusan = document.getElementById('jurusan').value;
-        const kehadiran = document.querySelector('input[name="kehadiran"]:checked').value;
-        const tanggal = document.getElementById('tanggal').value;
-        const keterangan = document.getElementById('keterangan').value.trim();
+        const activeUser = sessionStorage.getItem('activeUsername');
+        const savedProfileStr = sessionStorage.getItem('activeProfile');
+        let profile = {};
+        if (savedProfileStr) {
+          try { profile = JSON.parse(savedProfileStr); } catch(e) {}
+        }
+
+        const nama = profile.nama || activeUser || "-";
+        const nrp = profile.nrp || "-";
+        const pangkat = profile.pangkat || "";
+        const corps = profile.corps || "";
+        const tanggal = new Date().toISOString().split('T')[0];
 
         // Calculation
         let correctCount = 0;
@@ -2014,14 +2082,14 @@
         // Save submission data
         const newSubmission = {
           id: Date.now(),
-          nama,
-          nis,
-          kelas,
-          jurusan,
-          kehadiran,
-          tanggal,
-          jam: submissionTime,
-          keterangan,
+          timestamp: new Date().toISOString(),
+          username: activeUser,
+          profile: {
+            nama,
+            nrp,
+            pangkat,
+            corps
+          },
           answers: studentAnswers,
           answerFiles: studentFiles,
           score,
@@ -2038,9 +2106,8 @@
         // Display student result card
         document.getElementById('finalScore').textContent = score;
         document.getElementById('resNama').textContent = nama;
-        document.getElementById('resNis').textContent = nis;
-        document.getElementById('resKelasJurusan').textContent = `${kelas} - ${jurusan}`;
-        document.getElementById('resKehadiran').textContent = kehadiran;
+        document.getElementById('resNis').textContent = nrp;
+        document.getElementById('resKelasJurusan').textContent = `${pangkat} - ${corps}`;
         document.getElementById('resTanggal').textContent = formatDate(tanggal);
         document.getElementById('resBenar').textContent = `${correctCount} / ${totalQuestions}`;
 
@@ -2053,8 +2120,7 @@
           badge.className = 'badge badge-failed';
         }
 
-        document.getElementById('stepper').style.display = 'none';
-        document.getElementById('examForm').style.display = 'none';
+        document.getElementById('studentUjianForm').style.display = 'none';
         document.getElementById('resultCard').style.display = 'block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (error) {
@@ -2323,43 +2389,7 @@
     }
 
     function resetForm() {
-      document.getElementById('examForm').reset();
-      
-      const selected = document.querySelectorAll('.option-card.selected, .answer-item.selected');
-      selected.forEach(el => el.classList.remove('selected'));
-
-      // Pre-fill profile from session storage if logged in as student
-      const savedProfileStr = sessionStorage.getItem('activeProfile');
-      let hasProfile = false;
-      if (savedProfileStr) {
-        try {
-          const profile = JSON.parse(savedProfileStr);
-          if (profile.nama && profile.nrp && profile.pangkat && profile.corps) {
-            document.getElementById('namaLengkap').value = profile.nama;
-            document.getElementById('nisNisn').value = profile.nrp;
-            document.getElementById('kelas').value = profile.pangkat;
-            document.getElementById('jurusan').value = profile.corps;
-            hasProfile = true;
-          }
-        } catch(e) {
-          console.error("Error prefilling profile:", e);
-        }
-      }
-
-      document.getElementById('resultCard').style.display = 'none';
-      document.getElementById('stepper').style.display = 'flex';
-      document.getElementById('examForm').style.display = 'block';
-      
-      if (hasProfile) {
-        document.getElementById('step-1-indicator').style.display = 'none';
-        document.getElementById('btnBackToStep1').style.display = 'none';
-        navigateTo(2);
-      } else {
-        document.getElementById('step-1-indicator').style.display = 'flex';
-        document.getElementById('btnBackToStep1').style.display = 'inline-flex';
-        navigateTo(1);
-      }
-      setTodayDate();
+      backToStudentMenu();
     }
 
     function formatDate(dateStr) {
