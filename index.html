@@ -968,8 +968,20 @@
       <!-- 3. ADMIN / OPERATOR PORTAL -->
       <div id="adminPortal" class="admin-dashboard">
         
-        <!-- Summary Cards -->
-        <div class="stats-grid">
+        <!-- Admin Tab Navigation Menu -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);" id="adminTabNav">
+          <button class="btn btn-secondary admin-tab-btn active" onclick="switchAdminTab('ringkasan')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabRingkasan">📊 Ringkasan</button>
+          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('soal')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabSoal">📝 Kelola Soal Ujian</button>
+          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('personel')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabPersonel">👥 Database Personil</button>
+          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('absensi')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabAbsensi">📅 Rekap Absensi</button>
+          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('hasil')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabHasil">🏆 Hasil Ujian</button>
+          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('sync')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabSync">⚙️ Pengaturan Sync</button>
+        </div>
+
+        <!-- 1. Ringkasan Tab -->
+        <div id="adminTab_ringkasan" style="display: block;">
+          <!-- Summary Cards -->
+          <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-label">Total Peserta</div>
             <div class="stat-value" id="statTotal">0</div>
@@ -987,9 +999,12 @@
             <div class="stat-value" id="statFailed">0</div>
           </div>
         </div>
+        </div> <!-- End adminTab_ringkasan -->
 
-        <!-- Google Sheets Sync Configuration -->
-        <div class="dashboard-card" style="border-left: 5px solid var(--accent); background: linear-gradient(to right, var(--accent-light), #ffffff);">
+        <!-- 2. Pengaturan Sync Tab -->
+        <div id="adminTab_sync" style="display: none;">
+          <!-- Google Sheets Sync Configuration -->
+          <div class="dashboard-card" style="border-left: 5px solid var(--accent); background: linear-gradient(to right, var(--accent-light), #ffffff);">
           <h3 style="display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif;">
             📊 Sinkronisasi Database Google Sheets
           </h3>
@@ -1007,9 +1022,12 @@
           </div>
           <div id="sheetsStatusMessage" style="font-size: 0.8rem; margin-top: 0.5rem; font-weight: 500;"></div>
         </div>
+        </div> <!-- End adminTab_sync -->
 
-        <!-- Management Dynamic Questions Block -->
-        <div class="dashboard-card">
+        <!-- 3. Kelola Soal Tab -->
+        <div id="adminTab_soal" style="display: none;">
+          <!-- Management Dynamic Questions Block -->
+          <div class="dashboard-card">
           <h3>Manajemen Soal Ujian Esai</h3>
           
           <!-- Import/Export buttons -->
@@ -1067,9 +1085,12 @@
             <!-- Questions rendered dynamically -->
           </div>
         </div>
+        </div> <!-- End adminTab_soal -->
 
-        <!-- Management Personnel Database Block -->
-        <div class="dashboard-card">
+        <!-- 4. Database Personel Tab -->
+        <div id="adminTab_personel" style="display: none;">
+          <!-- Management Personnel Database Block -->
+          <div class="dashboard-card">
           <h3>Manajemen Database Personil</h3>
           
           <!-- Add / Edit Personel Form -->
@@ -1183,9 +1204,12 @@
             </table>
           </div>
         </div>
+        </div> <!-- End adminTab_personel -->
 
-        <!-- Attendance Table Card -->
-        <div class="dashboard-card" style="border-top: 5px solid var(--accent);">
+        <!-- 5. Rekap Absensi Tab -->
+        <div id="adminTab_absensi" style="display: none;">
+          <!-- Attendance Table Card -->
+          <div class="dashboard-card" style="border-top: 5px solid var(--accent);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
             <h3>Rekapitulasi Absensi Harian Personel</h3>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -1217,9 +1241,12 @@
             </table>
           </div>
         </div>
+        </div> <!-- End adminTab_absensi -->
 
-        <!-- Submissions Table Card -->
-        <div class="dashboard-card">
+        <!-- 6. Rekap Hasil Ujian Tab -->
+        <div id="adminTab_hasil" style="display: none;">
+          <!-- Submissions Table Card -->
+          <div class="dashboard-card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
             <h3>Rekapitulasi Hasil Ujian Personel</h3>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -1254,6 +1281,7 @@
             </table>
           </div>
         </div>
+        </div> <!-- End adminTab_hasil -->
 
       </div>
 
@@ -1832,9 +1860,36 @@
         studentPortal.style.display = 'none';
         adminPortal.style.display = 'block';
         
+        switchAdminTab('ringkasan');
+        
         fetchQuestionsOnline().then(() => renderAdminQuestions()).catch(e => console.error(e));
         fetchUsersOnline().then(() => renderAdminPersonnel()).catch(e => console.error(e));
         fetchSubmissionsOnline().then(() => loadAdminDashboard()).catch(e => console.error(e));
+      }
+    }
+
+    function switchAdminTab(tabName) {
+      const tabs = ['ringkasan', 'soal', 'personel', 'absensi', 'hasil', 'sync'];
+      tabs.forEach(t => {
+        const el = document.getElementById('adminTab_' + t);
+        if (el) el.style.display = 'none';
+      });
+
+      const selectedEl = document.getElementById('adminTab_' + tabName);
+      if (selectedEl) selectedEl.style.display = 'block';
+
+      const buttons = document.querySelectorAll('.admin-tab-btn');
+      buttons.forEach(btn => {
+        btn.style.background = '#f1f5f9';
+        btn.style.color = 'var(--text-main)';
+        btn.style.borderColor = 'var(--border-color)';
+      });
+
+      const activeBtn = document.getElementById('btnTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+      if (activeBtn) {
+        activeBtn.style.background = 'var(--primary)';
+        activeBtn.style.color = '#ffffff';
+        activeBtn.style.borderColor = 'var(--primary)';
       }
     }
 
