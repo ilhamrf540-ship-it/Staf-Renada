@@ -2825,8 +2825,8 @@
     async function loadAdminAttendance() {
       const attendance = await fetchAttendanceOnline();
       
-      // Sort by timestamp descending
-      attendance.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      // Sort by timestamp ascending
+      attendance.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
       const tbody = document.getElementById('attendanceTableBody');
       if (!tbody) return;
@@ -3169,6 +3169,9 @@
     function exportAttendanceToExcel() {
       const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
       if (attendance.length === 0) return alert('Tidak ada rekap absensi untuk diexport.');
+      
+      // Sort by timestamp ascending
+      attendance.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       
       let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
       <head><meta charset="utf-8"></head>
