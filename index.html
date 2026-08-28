@@ -1516,17 +1516,17 @@
     ];
 
     // Initialize Page
-    document.addEventListener("DOMContentLoaded", async () => {
+    document.addEventListener("DOMContentLoaded", () => {
       // Seed default questions if empty
       if (!localStorage.getItem('exam_questions')) {
         localStorage.setItem('exam_questions', JSON.stringify(DEFAULT_QUESTIONS));
       }
 
-      // Fetch online data to sync local storage on load
-      await fetchQuestionsOnline();
-      await fetchUsersOnline();
-      await fetchSubmissionsOnline();
-      await fetchAttendanceOnline();
+      // Fetch online data to sync local storage on load (in background)
+      fetchQuestionsOnline();
+      fetchUsersOnline();
+      fetchSubmissionsOnline();
+      fetchAttendanceOnline();
 
       // Check active session if page refreshed
       const savedRole = sessionStorage.getItem('activeRole');
@@ -1818,7 +1818,7 @@
       showPanelForRole(role);
     }
 
-    async function showPanelForRole(role) {
+    function showPanelForRole(role) {
       const studentPortal = document.getElementById('studentPortal');
       const adminPortal = document.getElementById('adminPortal');
 
@@ -1832,12 +1832,9 @@
         studentPortal.style.display = 'none';
         adminPortal.style.display = 'block';
         
-        await fetchQuestionsOnline();
-        renderAdminQuestions();
-        await fetchUsersOnline();
-        renderAdminPersonnel();
-        await fetchSubmissionsOnline();
-        loadAdminDashboard();
+        fetchQuestionsOnline().then(() => renderAdminQuestions()).catch(e => console.error(e));
+        fetchUsersOnline().then(() => renderAdminPersonnel()).catch(e => console.error(e));
+        fetchSubmissionsOnline().then(() => loadAdminDashboard()).catch(e => console.error(e));
       }
     }
 
