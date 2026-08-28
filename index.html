@@ -1076,10 +1076,13 @@
 
         <!-- 1. Ringkasan Tab -->
         <div id="adminTab_ringkasan" style="display: block;">
-          <!-- Summary Cards -->
           <div class="stats-grid">
+          <div class="stat-card" style="border-top: 4px solid var(--primary);">
+            <div class="stat-label">👥 Personil Terdaftar</div>
+            <div class="stat-value" id="statPersonnel">0</div>
+          </div>
           <div class="stat-card">
-            <div class="stat-label">Total Peserta</div>
+            <div class="stat-label">📝 Total Pengerjaan Ujian</div>
             <div class="stat-value" id="statTotal">0</div>
           </div>
           <div class="stat-card accent-border">
@@ -1956,15 +1959,12 @@
         studentPortal.style.display = 'none';
         adminPortal.style.display = 'block';
         
-        switchAdminTab('ringkasan');
-        
-        fetchQuestionsOnline().then(() => renderAdminQuestions()).catch(e => console.error(e));
-        fetchUsersOnline().then(() => renderAdminPersonnel()).catch(e => console.error(e));
-        fetchSubmissionsOnline().then(() => loadAdminDashboard()).catch(e => console.error(e));
+        // switchAdminTab('ringkasan') already triggers loadAdminDashboard()
+        await switchAdminTab('ringkasan');
       }
     }
 
-    function switchAdminTab(tabName) {
+    async function switchAdminTab(tabName) {
       const tabs = ['ringkasan', 'soal', 'personel', 'absensi', 'hasil', 'sync'];
       tabs.forEach(t => {
         const el = document.getElementById('adminTab_' + t);
@@ -1987,6 +1987,20 @@
         activeBtn.style.color = '#ffffff';
         activeBtn.style.borderColor = 'var(--primary)';
       }
+
+      // Refresh data setiap kali tab dibuka (agar selalu sinkron)
+      try {
+        if (tabName === 'personel') {
+          await renderAdminPersonnel();
+        } else if (tabName === 'ringkasan' || tabName === 'hasil') {
+          await loadAdminDashboard();
+        } else if (tabName === 'absensi') {
+          await loadAdminAttendance();
+        } else if (tabName === 'soal') {
+          await fetchQuestionsOnline();
+          renderAdminQuestions();
+        }
+      } catch(e) { console.error('Tab refresh error:', e); }
     }
 
     function loadStudentProfile() {
@@ -2599,13 +2613,18 @@
       // Load attendance table first
       await loadAdminAttendance();
 
-      const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
+      // Fetch submissions from online source
+      const submissions = await fetchSubmissionsOnline();
       
+      // Fetch registered users count
+      const users = await fetchUsersOnline();
+      const personnelCount = users.filter(u => u.role === 'siswa').length;
+
       // Sort submissions by timestamp (id) descending (newest first)
       submissions.sort((a, b) => b.id - a.id);
 
       const tbody = document.getElementById('submissionsTableBody');
-      tbody.innerHTML = '';
+      if (tbody) tbody.innerHTML = '';
 
       let totalScore = 0;
       let passedCount = 0;
@@ -2619,6 +2638,7 @@
         const prof = sub.profile || { nama: sub.nama, nrp: sub.nis, pangkat: sub.kelas, corps: sub.jurusan };
         const examTimeStr = sub.timestamp ? formatDateTime(sub.timestamp) : `${formatDate(sub.tanggal)} pukul ${sub.jam || '--:--'} WIB`;
 
+        if (!tbody) return;
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td style="font-size:0.85rem; font-weight:600;">${examTimeStr}</td>
@@ -2638,11 +2658,13 @@
         tbody.appendChild(tr);
       });
 
-      if (submissions.length === 0) {
+      if (tbody && submissions.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada hasil ujian yang terkirim.</td></tr>`;
       }
 
       // Update statistics panel widgets
+      const statPersonnelEl = document.getElementById('statPersonnel');
+      if (statPersonnelEl) statPersonnelEl.textContent = personnelCount;
       document.getElementById('statTotal').textContent = submissions.length;
       document.getElementById('statAverage').textContent = submissions.length > 0 ? (totalScore / submissions.length).toFixed(1) : '0.0';
       document.getElementById('statPassed').textContent = passedCount;
