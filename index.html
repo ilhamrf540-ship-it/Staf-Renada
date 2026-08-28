@@ -2143,7 +2143,7 @@
       }
     }
 
-    function saveToLocalStorage(idVal, text, keywords, fileData, fileName, fileUploadTime) {
+    async function saveToLocalStorage(idVal, text, keywords, fileData, fileName, fileUploadTime) {
       let questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
       if (idVal) {
         questions = questions.map(q => q.id == idVal ? { id: parseInt(idVal), text, keywords, fileData, fileName, fileUploadTime } : q);
@@ -2151,7 +2151,9 @@
         const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
         questions.push({ id: newId, text, keywords, fileData, fileName, fileUploadTime });
       }
-      localStorage.setItem('exam_questions', JSON.stringify(questions));
+      
+      // Save online first
+      await saveQuestionsOnline(questions);
 
       // Reset Form
       document.getElementById('questionForm').reset();
@@ -2191,11 +2193,12 @@
       document.getElementById('submitQuestBtnText').textContent = 'Tambah Soal Baru';
     }
 
-    function deleteQuestion(id) {
+    async function deleteQuestion(id) {
       if (!confirm('Apakah Anda yakin ingin menghapus soal ini?')) return;
       let questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
       questions = questions.filter(q => q.id !== id);
-      localStorage.setItem('exam_questions', JSON.stringify(questions));
+      
+      await saveQuestionsOnline(questions);
       renderAdminQuestions();
     }
     // Load Admin Submission Dashboard
@@ -2431,12 +2434,12 @@
       document.body.removeChild(a);
     }
 
-    function importQuestions(input) {
+    async function importQuestions(input) {
       const file = input.files[0];
       if (!file) return;
       
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = async function(e) {
         const text = e.target.result;
         const lines = text.split('\n');
         let questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
@@ -2458,7 +2461,7 @@
         });
         
         if (importedCount > 0) {
-          localStorage.setItem('exam_questions', JSON.stringify(questions));
+          await saveQuestionsOnline(questions);
           renderAdminQuestions();
           alert(`Berhasil mengimpor ${importedCount} soal.`);
         } else {
