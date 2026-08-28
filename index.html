@@ -1288,15 +1288,24 @@
         const data = await response.json();
         if (data && !data.error) {
           const qList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
-          localStorage.setItem('exam_questions', JSON.stringify(qList));
-          return qList;
+          const validQs = qList.filter(q => q && typeof q === 'object' && q.id);
+          localStorage.setItem('exam_questions', JSON.stringify(validQs));
+          return validQs;
         } else {
           await saveQuestionsOnline(DEFAULT_QUESTIONS);
           return DEFAULT_QUESTIONS;
         }
       } catch (e) {
         console.error("Error fetching questions online:", e);
-        return JSON.parse(localStorage.getItem('exam_questions') || '[]');
+        try {
+          const localData = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+          if (Array.isArray(localData)) {
+            const validLocal = localData.filter(q => q && typeof q === 'object' && q.id);
+            if (validLocal.length > 0) return validLocal;
+          }
+        } catch(err) {}
+        localStorage.setItem('exam_questions', JSON.stringify(DEFAULT_QUESTIONS));
+        return DEFAULT_QUESTIONS;
       }
     }
 
@@ -1325,13 +1334,23 @@
         const data = await response.json();
         if (data && !data.error) {
           const userList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
-          localStorage.setItem('registeredUsers', JSON.stringify(userList));
-          return userList;
+          const validUsers = userList.filter(u => u && typeof u === 'object' && u.username);
+          localStorage.setItem('registeredUsers', JSON.stringify(validUsers));
+          return validUsers;
         }
-        return JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+        throw new Error("Invalid or empty data from server");
       } catch (e) {
         console.error("Error fetching users online:", e);
-        return JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+        try {
+          const localData = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(u => u && typeof u === 'object' && u.username);
+          }
+        } catch(err) {
+          console.error("Local storage corrupted, resetting:", err);
+        }
+        localStorage.setItem('registeredUsers', JSON.stringify([]));
+        return [];
       }
     }
 
@@ -1360,13 +1379,21 @@
         const data = await response.json();
         if (data && !data.error) {
           const subList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
-          localStorage.setItem('submissions', JSON.stringify(subList));
-          return subList;
+          const validSubs = subList.filter(s => s && typeof s === 'object' && s.username);
+          localStorage.setItem('submissions', JSON.stringify(validSubs));
+          return validSubs;
         }
-        return JSON.parse(localStorage.getItem('submissions') || '[]');
+        throw new Error("Invalid data");
       } catch(e) {
         console.error("Error fetching submissions online:", e);
-        return JSON.parse(localStorage.getItem('submissions') || '[]');
+        try {
+          const localData = JSON.parse(localStorage.getItem('submissions') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(s => s && typeof s === 'object' && s.username);
+          }
+        } catch(err) {}
+        localStorage.setItem('submissions', JSON.stringify([]));
+        return [];
       }
     }
 
