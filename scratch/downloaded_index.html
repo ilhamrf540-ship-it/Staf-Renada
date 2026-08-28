@@ -667,11 +667,6 @@
       max-height: 85vh;
       overflow-y: auto;
     }
-
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-12px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
   </style>
 </head>
 <body>
@@ -692,7 +687,7 @@
 
       <div class="login-body">
         <!-- Error login/register alert -->
-        <div class="error-alert" id="loginErrorBox" style="margin-bottom: 1rem;">
+        <div class="error-alert" id="loginErrorBox" style="margin-bottom: 1rem; display: none;">
           <strong>⚠️ Kesalahan:</strong> <span id="loginErrorMsg">Username atau Password salah.</span>
         </div>
         
@@ -827,103 +822,12 @@
 
         <!-- Profile card -->
         <div class="dashboard-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--primary-light) 0%, #ffffff 100%); border-left: 5px solid var(--primary);">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
-            <h3 style="font-family: 'Outfit', sans-serif;">👤 Profil Aktif Personel</h3>
-            <button id="btnEditProfil" class="btn btn-secondary" onclick="openEditProfile()" style="font-size: 0.8rem; padding: 0.35rem 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
-              ✏️ Edit Profil
-            </button>
-          </div>
+          <h3 style="font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem;">👤 Profil Aktif Personel</h3>
           <div style="display: flex; gap: 2rem; flex-wrap: wrap; font-size: 0.9rem;">
             <div><strong>Nama:</strong> <span id="profNama">-</span></div>
             <div><strong>NRP:</strong> <span id="profNrp">-</span></div>
             <div><strong>Pangkat:</strong> <span id="profPangkat">-</span></div>
             <div><strong>Corps:</strong> <span id="profCorps">-</span></div>
-          </div>
-        </div>
-
-        <!-- Edit Profile Panel -->
-        <div id="editProfilePanel" style="display: none; margin-bottom: 1.5rem;">
-          <div class="dashboard-card" style="border-top: 5px solid var(--primary); background: linear-gradient(135deg, var(--primary-light) 0%, #ffffff 100%); animation: slideDown 0.3s ease;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-              <h3 style="font-family: 'Outfit', sans-serif; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
-                ✏️ Edit Profil Personel
-              </h3>
-              <button type="button" onclick="cancelEditProfile()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); line-height: 1;" title="Tutup">✕</button>
-            </div>
-
-            <form id="editProfileForm" onsubmit="saveProfile(event)">
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label for="editProfNama">Nama Lengkap <span class="required">*</span></label>
-                  <input type="text" id="editProfNama" placeholder="Nama lengkap" required>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label for="editProfNrp">NRP <span class="required">*</span></label>
-                  <input type="text" id="editProfNrp" placeholder="Nomor NRP">
-                </div>
-              </div>
-
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label for="editProfPangkat">Pangkat <span class="required">*</span></label>
-                  <select id="editProfPangkat" required>
-                    <option value="" disabled>Pilih Pangkat</option>
-                    <option value="Letda">Letda (Letnan Dua)</option>
-                    <option value="Lettu">Lettu (Letnan Satu)</option>
-                    <option value="Kapten">Kapten</option>
-                    <option value="Mayor">Mayor</option>
-                    <option value="Letkol">Letkol (Letnan Kolonel)</option>
-                    <option value="Kolonel">Kolonel</option>
-                  </select>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label for="editProfCorps">Corps <span class="required">*</span></label>
-                  <select id="editProfCorps" required>
-                    <option value="" disabled>Pilih Corps</option>
-                    <option value="Infanteri (Inf)">Infanteri (Inf)</option>
-                    <option value="Armed (Arm)">Armed (Arm)</option>
-                    <option value="Arhanud (Arh)">Arhanud (Arh)</option>
-                    <option value="Kavaleri (Kav)">Kavaleri (Kav)</option>
-                    <option value="Zeni (Czi)">Zeni (Czi)</option>
-                    <option value="Penerbangan (Cpn)">Penerbangan (Cpn)</option>
-                    <option value="Komunikasi dan Elektronika (Cke)">Komunikasi dan Elektronika (Cke)</option>
-                    <option value="Peralatan (Cpl)">Peralatan (Cpl)</option>
-                    <option value="Pembekalan Angkutan (Cba)">Pembekalan Angkutan (Cba)</option>
-                    <option value="Kesehatan Militer (Ckm)">Kesehatan Militer (Ckm)</option>
-                    <option value="Polisi Militer (Cpm)">Polisi Militer (Cpm)</option>
-                    <option value="Ajudan Jenderal (Caj)">Ajudan Jenderal (Caj)</option>
-                    <option value="Topografi (Ctp)">Topografi (Ctp)</option>
-                    <option value="Keuangan (Cku)">Keuangan (Cku)</option>
-                    <option value="Hukum (Chk)">Hukum (Chk)</option>
-                  </select>
-                </div>
-              </div>
-
-              <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1rem 0;">
-              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 600;">🔒 Ubah Password (opsional — kosongkan jika tidak ingin diubah)</p>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label for="editProfPassBaru">Password Baru</label>
-                  <input type="password" id="editProfPassBaru" placeholder="Password baru (min. 4 karakter)">
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label for="editProfPassKonfirm">Konfirmasi Password</label>
-                  <input type="password" id="editProfPassKonfirm" placeholder="Ulangi password baru">
-                </div>
-              </div>
-
-              <!-- Inline feedback message -->
-              <div id="editProfileMsg" style="display: none; font-size: 0.85rem; font-weight: 600; padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); margin-bottom: 1rem;"></div>
-
-              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                <button type="submit" class="btn btn-primary" style="font-size: 0.9rem;">
-                  💾 Simpan Perubahan
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="cancelEditProfile()" style="font-size: 0.9rem;">
-                  Batal
-                </button>
-              </div>
-            </form>
           </div>
         </div>
 
@@ -1064,320 +968,338 @@
       <!-- 3. ADMIN / OPERATOR PORTAL -->
       <div id="adminPortal" class="admin-dashboard">
         
-        <!-- Admin Tab Navigation Menu -->
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);" id="adminTabNav">
-          <button class="btn btn-secondary admin-tab-btn active" onclick="switchAdminTab('ringkasan')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabRingkasan">📊 Ringkasan</button>
-          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('soal')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabSoal">📝 Kelola Soal Ujian</button>
-          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('personel')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabPersonel">👥 Database Personil</button>
-          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('absensi')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabAbsensi">📅 Rekap Absensi</button>
-          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('hasil')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabHasil">🏆 Hasil Ujian</button>
-          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('sync')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabSync">⚙️ Pengaturan Sync</button>
+        <!-- Admin Navigation Tabs -->
+        <div class="stepper" style="margin-bottom: 2rem; display: flex; flex-wrap: wrap; justify-content: start; gap: 0.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; border-radius: 0;">
+          <button type="button" class="btn btn-primary" id="tabBtn-ringkasan" onclick="switchAdminTab('ringkasan')" style="font-size: 0.85rem; padding: 0.6rem 1.1rem; border-radius: var(--radius-sm);">
+            📊 Ringkasan
+          </button>
+          <button type="button" class="btn btn-secondary" id="tabBtn-soal" onclick="switchAdminTab('soal')" style="font-size: 0.85rem; padding: 0.6rem 1.1rem; border-radius: var(--radius-sm);">
+            ✏️ Kelola Soal Ujian
+          </button>
+          <button type="button" class="btn btn-secondary" id="tabBtn-personel" onclick="switchAdminTab('personel')" style="font-size: 0.85rem; padding: 0.6rem 1.1rem; border-radius: var(--radius-sm);">
+            👤 Database Personel
+          </button>
+          <button type="button" class="btn btn-secondary" id="tabBtn-absensi" onclick="switchAdminTab('absensi')" style="font-size: 0.85rem; padding: 0.6rem 1.1rem; border-radius: var(--radius-sm);">
+            📅 Rekap Absensi Harian
+          </button>
+          <button type="button" class="btn btn-secondary" id="tabBtn-nilai" onclick="switchAdminTab('nilai')" style="font-size: 0.85rem; padding: 0.6rem 1.1rem; border-radius: var(--radius-sm);">
+            🏆 Rekap Hasil Ujian
+          </button>
+          <button type="button" class="btn btn-secondary" id="tabBtn-pengaturan" onclick="switchAdminTab('pengaturan')" style="font-size: 0.85rem; padding: 0.6rem 1.1rem; border-radius: var(--radius-sm);">
+            ⚙️ Pengaturan Sync
+          </button>
         </div>
 
-        <!-- 1. Ringkasan Tab -->
-        <div id="adminTab_ringkasan" style="display: block;">
+        <!-- SECTION 1: RINGKASAN -->
+        <div id="adminSec-ringkasan" class="admin-tab-section">
           <!-- Summary Cards -->
-          <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Total Peserta</div>
-            <div class="stat-value" id="statTotal">0</div>
+          <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-card">
+              <div class="stat-label">Total Peserta Ujian</div>
+              <div class="stat-value" id="statTotal">0</div>
+            </div>
+            <div class="stat-card accent-border">
+              <div class="stat-label">Rata-rata Nilai</div>
+              <div class="stat-value" id="statAverage">0.0</div>
+            </div>
+            <div class="stat-card success-border">
+              <div class="stat-label">Tuntas (>= 70)</div>
+              <div class="stat-value" id="statPassed">0</div>
+            </div>
+            <div class="stat-card error-border">
+              <div class="stat-label">Belum Tuntas</div>
+              <div class="stat-value" id="statFailed">0</div>
+            </div>
           </div>
-          <div class="stat-card accent-border">
-            <div class="stat-label">Rata-rata Nilai</div>
-            <div class="stat-value" id="statAverage">0.0</div>
-          </div>
-          <div class="stat-card success-border">
-            <div class="stat-label">Tuntas (>= 70)</div>
-            <div class="stat-value" id="statPassed">0</div>
-          </div>
-          <div class="stat-card error-border">
-            <div class="stat-label">Belum Tuntas</div>
-            <div class="stat-value" id="statFailed">0</div>
+
+          <div class="dashboard-card" style="background: linear-gradient(135deg, var(--primary-light) 0%, #ffffff 100%); border-left: 5px solid var(--primary);">
+            <h3 style="font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem;">Selamat Datang, Operator!</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+              Gunakan menu navigasi tab di atas untuk mengelola data operasional sistem. Anda dapat memperbarui bank soal ujian esai, mengelola akun login personel/siswa, memantau absensi kehadiran harian secara real-time, serta memeriksa hasil koreksi lembar ujian esai militer secara detail.
+            </p>
           </div>
         </div>
-        </div> <!-- End adminTab_ringkasan -->
 
-        <!-- 2. Pengaturan Sync Tab -->
-        <div id="adminTab_sync" style="display: none;">
-          <!-- Google Sheets Sync Configuration -->
-          <div class="dashboard-card" style="border-left: 5px solid var(--accent); background: linear-gradient(to right, var(--accent-light), #ffffff);">
-          <h3 style="display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif;">
-            📊 Sinkronisasi Database Google Sheets
-          </h3>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem; margin-bottom: 1rem;">
-            Hubungkan website ini ke Google Spreadsheet Anda agar data absen, personel, dan nilai sinkron secara otomatis antar perangkat.
-          </p>
-          <div style="display: flex; gap: 0.5rem; align-items: center; max-width: 750px; flex-wrap: wrap;">
-            <input type="text" id="googleSheetsApiUrl" placeholder="Tempel URL Web App dari Google Apps Script Anda (akhiran /exec)" style="flex: 1; min-width: 250px; padding: 0.55rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-size: 0.85rem;">
-            <button type="button" class="btn btn-accent" onclick="saveGoogleSheetsConfig()" style="font-size: 0.85rem; padding: 0.55rem 1.2rem;">
-              Simpan & Hubungkan
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="disconnectGoogleSheets()" id="disconnectSheetsBtn" style="font-size: 0.85rem; padding: 0.55rem 1.2rem; display: none;">
-              Putuskan
-            </button>
-          </div>
-          <div id="sheetsStatusMessage" style="font-size: 0.8rem; margin-top: 0.5rem; font-weight: 500;"></div>
-        </div>
-        </div> <!-- End adminTab_sync -->
-
-        <!-- 3. Kelola Soal Tab -->
-        <div id="adminTab_soal" style="display: none;">
+        <!-- SECTION 2: KELOLA SOAL -->
+        <div id="adminSec-soal" class="admin-tab-section" style="display: none;">
           <!-- Management Dynamic Questions Block -->
-          <div class="dashboard-card">
-          <h3>Manajemen Soal Ujian Esai</h3>
-          
-          <!-- Import/Export buttons -->
-          <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
-            <input type="file" id="importQuestionsFile" accept=".csv, .txt" onchange="importQuestions(this)" style="display: none;">
-            <button type="button" class="btn btn-secondary" onclick="document.getElementById('importQuestionsFile').click()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📥 Import Soal (.csv / .txt)
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="exportQuestionsToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📝 Export ke Word (.doc)
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="exportQuestionsToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📊 Export ke Excel (.xls)
-            </button>
-          </div>
-          <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; margin-top: -0.75rem;">
-            * Format berkas import (.txt/.csv): <code>Pertanyaan | kata_kunci1, kata_kunci2</code> (Satu soal per baris).
-          </p>
-          
-          <!-- Add / Edit Form -->
-          <form id="questionForm" onsubmit="saveQuestion(event)" style="background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
-            <input type="hidden" id="editQuestId" value="">
+          <div class="dashboard-card" style="border-top: 5px solid var(--primary);">
+            <h3>Manajemen Soal Ujian Esai</h3>
             
-            <div class="form-group">
-              <label for="editQuestText">Teks Pertanyaan Esai <span class="required">*</span></label>
-              <textarea id="editQuestText" rows="2" placeholder="Tuliskan pertanyaan ujian baru..." required></textarea>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 1rem;">
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label for="editQuestKeywords">Kata Kunci Penilaian Otomatis <span class="required">*</span></label>
-              <input type="text" id="editQuestKeywords" placeholder="Pisahkan dengan koma (contoh: beringin, pohon, persatuan)" required>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 3px;">Sistem akan mengoreksi jawaban esai sebagai 'Benar' jika berisi salah satu dari kata kunci ini.</p>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label for="editQuestFile">Dokumen Pendukung Soal (Opsional)</label>
-              <input type="file" id="editQuestFile" accept=".pdf, .doc, .docx, .xls, .xlsx, .png, .jpg, .jpeg">
-              <div id="editQuestFileStatus" style="font-size: 0.8rem; margin-top: 4px; color: var(--accent); font-weight: 600;"></div>
-            </div>
-
-            <div style="display: flex; gap: 0.5rem;">
-              <button type="submit" class="btn btn-accent" id="submitQuestBtn">
-                <span id="submitQuestBtnText">Tambah Soal Baru</span>
+            <!-- Import/Export buttons -->
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+              <input type="file" id="importQuestionsFile" accept=".csv, .txt" onchange="importQuestions(this)" style="display: none;">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('importQuestionsFile').click()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+                📥 Import Soal (.csv / .txt)
               </button>
-              <button type="button" class="btn btn-secondary" id="btnCancelEditQuest" onclick="cancelEditQuestion()" style="display: none;">
-                Batal
+              <button type="button" class="btn btn-secondary" onclick="exportQuestionsToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+                📝 Export ke Word (.doc)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="exportQuestionsToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+                📊 Export ke Excel (.xls)
               </button>
             </div>
-          </form>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; margin-top: -0.75rem;">
+              * Format berkas import (.txt/.csv): <code>Pertanyaan | kata_kunci1, kata_kunci2</code> (Satu soal per baris).
+            </p>
+            
+            <!-- Add / Edit Form -->
+            <form id="questionForm" onsubmit="saveQuestion(event)" style="background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+              <input type="hidden" id="editQuestId" value="">
+              
+              <div class="form-group">
+                <label for="editQuestText">Teks Pertanyaan Esai <span class="required">*</span></label>
+                <textarea id="editQuestText" rows="2" placeholder="Tuliskan pertanyaan ujian baru..." required></textarea>
+              </div>
+              
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="editQuestKeywords">Kata Kunci Penilaian Otomatis <span class="required">*</span></label>
+                <input type="text" id="editQuestKeywords" placeholder="Pisahkan dengan koma (contoh: beringin, pohon, persatuan)" required>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 3px;">Sistem akan mengoreksi jawaban esai sebagai 'Benar' jika berisi salah satu dari kata kunci ini.</p>
+              </div>
 
-          <!-- List of Questions -->
-          <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-family: 'Outfit', sans-serif;">Daftar Soal Ujian:</h4>
-          <div id="adminQuestionsList">
-            <!-- Questions rendered dynamically -->
+              <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label for="editQuestFile">Dokumen Pendukung Soal (Opsional)</label>
+                <input type="file" id="editQuestFile" accept=".pdf, .doc, .docx, .xls, .xlsx, .png, .jpg, .jpeg">
+                <div id="editQuestFileStatus" style="font-size: 0.8rem; margin-top: 4px; color: var(--accent); font-weight: 600;"></div>
+              </div>
+
+              <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-accent" id="submitQuestBtn">
+                  <span id="submitQuestBtnText">Tambah Soal Baru</span>
+                </button>
+                <button type="button" class="btn btn-secondary" id="btnCancelEditQuest" onclick="cancelEditQuestion()" style="display: none;">
+                  Batal
+                </button>
+              </div>
+            </form>
+
+            <!-- List of Questions -->
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-family: 'Outfit', sans-serif;">Daftar Soal Ujian:</h4>
+            <div id="adminQuestionsList">
+              <!-- Questions rendered dynamically -->
+            </div>
           </div>
         </div>
-        </div> <!-- End adminTab_soal -->
 
-        <!-- 4. Database Personel Tab -->
-        <div id="adminTab_personel" style="display: none;">
+        <!-- SECTION 3: DATABASE PERSONEL -->
+        <div id="adminSec-personel" class="admin-tab-section" style="display: none;">
           <!-- Management Personnel Database Block -->
-          <div class="dashboard-card">
-          <h3>Manajemen Database Personil</h3>
-          
-          <!-- Add / Edit Personel Form -->
-          <form id="personnelForm" onsubmit="savePersonnel(event)" style="background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
-            <input type="hidden" id="editPersId" value="">
+          <div class="dashboard-card" style="border-top: 5px solid var(--primary);">
+            <h3>Manajemen Database Personil</h3>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersUsername">Username <span class="required">*</span></label>
-                <input type="text" id="editPersUsername" placeholder="Username untuk login" required>
+            <!-- Add / Edit Personel Form -->
+            <form id="personnelForm" onsubmit="savePersonnel(event)" style="background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+              <input type="hidden" id="editPersId" value="">
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="editPersUsername">Username <span class="required">*</span></label>
+                  <input type="text" id="editPersUsername" placeholder="Username untuk login" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="editPersPassword">Kata Sandi / Password <span class="required">*</span></label>
+                  <input type="text" id="editPersPassword" placeholder="Kata sandi akun" required>
+                </div>
               </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersPassword">Kata Sandi / Password <span class="required">*</span></label>
-                <input type="text" id="editPersPassword" placeholder="Kata sandi akun" required>
-              </div>
-            </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersNama">Nama Lengkap <span class="required">*</span></label>
-                <input type="text" id="editPersNama" placeholder="Nama lengkap personel" required>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="editPersNama">Nama Lengkap <span class="required">*</span></label>
+                  <input type="text" id="editPersNama" placeholder="Nama lengkap personel" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="editPersNrp">NRP <span class="required">*</span></label>
+                  <input type="text" id="editPersNrp" placeholder="Nomor NRP" required>
+                </div>
               </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersNrp">NRP <span class="required">*</span></label>
-                <input type="text" id="editPersNrp" placeholder="Nomor NRP" required>
-              </div>
-            </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersPangkat">Pangkat <span class="required">*</span></label>
-                <select id="editPersPangkat" required>
-                  <option value="" disabled selected>Pilih Pangkat</option>
-                  <option value="Letda">Letda (Letnan Dua)</option>
-                  <option value="Lettu">Lettu (Letnan Satu)</option>
-                  <option value="Kapten">Kapten</option>
-                  <option value="Mayor">Mayor</option>
-                  <option value="Letkol">Letkol (Letnan Kolonel)</option>
-                  <option value="Kolonel">Kolonel</option>
-                </select>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="editPersPangkat">Pangkat <span class="required">*</span></label>
+                  <select id="editPersPangkat" required>
+                    <option value="" disabled selected>Pilih Pangkat</option>
+                    <option value="Letda">Letda (Letnan Dua)</option>
+                    <option value="Lettu">Lettu (Letnan Satu)</option>
+                    <option value="Kapten">Kapten</option>
+                    <option value="Mayor">Mayor</option>
+                    <option value="Letkol">Letkol (Letnan Kolonel)</option>
+                    <option value="Kolonel">Kolonel</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="editPersCorps">Corps <span class="required">*</span></label>
+                  <select id="editPersCorps" required>
+                    <option value="" disabled selected>Pilih Corps</option>
+                    <option value="Infanteri (Inf)">Infanteri (Inf)</option>
+                    <option value="Armed (Arm)">Armed (Arm)</option>
+                    <option value="Arhanud (Arh)">Arhanud (Arh)</option>
+                    <option value="Kavaleri (Kav)">Kavaleri (Kav)</option>
+                    <option value="Zeni (Czi)">Zeni (Czi)</option>
+                    <option value="Penerbangan (Cpn)">Penerbangan (Cpn)</option>
+                    <option value="Komunikasi dan Elektronika (Cke)">Komunikasi dan Elektronika (Cke)</option>
+                    <option value="Peralatan (Cpl)">Peralatan (Cpl)</option>
+                    <option value="Pembekalan Angkutan (Cba)">Pembekalan Angkutan (Cba)</option>
+                    <option value="Kesehatan Militer (Ckm)">Kesehatan Militer (Ckm)</option>
+                    <option value="Polisi Militer (Cpm)">Polisi Militer (Cpm)</option>
+                    <option value="Ajudan Jenderal (Caj)">Ajudan Jenderal (Caj)</option>
+                    <option value="Topografi (Ctp)">Topografi (Ctp)</option>
+                    <option value="Keuangan (Cku)">Keuangan (Cku)</option>
+                    <option value="Hukum (Chk)">Hukum (Chk)</option>
+                  </select>
+                </div>
               </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersCorps">Corps <span class="required">*</span></label>
-                <select id="editPersCorps" required>
-                  <option value="" disabled selected>Pilih Corps</option>
-                  <option value="Infanteri (Inf)">Infanteri (Inf)</option>
-                  <option value="Armed (Arm)">Armed (Arm)</option>
-                  <option value="Arhanud (Arh)">Arhanud (Arh)</option>
-                  <option value="Kavaleri (Kav)">Kavaleri (Kav)</option>
-                  <option value="Zeni (Czi)">Zeni (Czi)</option>
-                  <option value="Penerbangan (Cpn)">Penerbangan (Cpn)</option>
-                  <option value="Komunikasi dan Elektronika (Cke)">Komunikasi dan Elektronika (Cke)</option>
-                  <option value="Peralatan (Cpl)">Peralatan (Cpl)</option>
-                  <option value="Pembekalan Angkutan (Cba)">Pembekalan Angkutan (Cba)</option>
-                  <option value="Kesehatan Militer (Ckm)">Kesehatan Militer (Ckm)</option>
-                  <option value="Polisi Militer (Cpm)">Polisi Militer (Cpm)</option>
-                  <option value="Ajudan Jenderal (Caj)">Ajudan Jenderal (Caj)</option>
-                  <option value="Topografi (Ctp)">Topografi (Ctp)</option>
-                  <option value="Keuangan (Cku)">Keuangan (Cku)</option>
-                  <option value="Hukum (Chk)">Hukum (Chk)</option>
-                </select>
-              </div>
-            </div>
 
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-              <button type="submit" class="btn btn-accent" id="submitPersBtn">
-                <span id="submitPersBtnText">Tambah Personel Baru</span>
+              <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button type="submit" class="btn btn-accent" id="submitPersBtn">
+                  <span id="submitPersBtnText">Tambah Personel Baru</span>
+                </button>
+                <button type="button" class="btn btn-secondary" id="btnCancelEditPers" onclick="cancelEditPersonnel()" style="display: none;">
+                  Batal
+                </button>
+              </div>
+            </form>
+
+            <!-- List of Personnel -->
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-family: 'Outfit', sans-serif;">Daftar Akun Personel Terdaftar:</h4>
+            
+            <!-- Import/Export buttons -->
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+              <input type="file" id="importPersonnelFile" accept=".csv, .txt" onchange="importPersonnel(this)" style="display: none;">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('importPersonnelFile').click()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+                📥 Import Personel (.csv / .txt)
               </button>
-              <button type="button" class="btn btn-secondary" id="btnCancelEditPers" onclick="cancelEditPersonnel()" style="display: none;">
-                Batal
+              <button type="button" class="btn btn-secondary" onclick="exportPersonnelToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+                📝 Export ke Word (.doc)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="exportPersonnelToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+                📊 Export ke Excel (.xls)
               </button>
             </div>
-          </form>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; margin-top: -0.75rem;">
+              * Format berkas import (.txt/.csv): <code>username | password | nama | nrp | pangkat | corps</code> (Satu akun per baris).
+            </p>
 
-          <!-- List of Personnel -->
-          <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-family: 'Outfit', sans-serif;">Daftar Akun Personel Terdaftar:</h4>
-          
-          <!-- Import/Export buttons -->
-          <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
-            <input type="file" id="importPersonnelFile" accept=".csv, .txt" onchange="importPersonnel(this)" style="display: none;">
-            <button type="button" class="btn btn-secondary" onclick="document.getElementById('importPersonnelFile').click()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📥 Import Personel (.csv / .txt)
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="exportPersonnelToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📝 Export ke Word (.doc)
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="exportPersonnelToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📊 Export ke Excel (.xls)
-            </button>
-          </div>
-          <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; margin-top: -0.75rem;">
-            * Format berkas import (.txt/.csv): <code>username | password | nama | nrp | pangkat | corps</code> (Satu akun per baris).
-          </p>
-
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Username</th>
-                  <th>Kata Sandi</th>
-                  <th>Nama Lengkap</th>
-                  <th>NRP</th>
-                  <th>Pangkat</th>
-                  <th>Corps</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="adminPersonnelTableBody">
-                <!-- Personnel rows rendered dynamically -->
-              </tbody>
-            </table>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Kata Sandi</th>
+                    <th>Nama Lengkap</th>
+                    <th>NRP</th>
+                    <th>Pangkat</th>
+                    <th>Corps</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="adminPersonnelTableBody">
+                  <!-- Personnel rows rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-        </div> <!-- End adminTab_personel -->
 
-        <!-- 5. Rekap Absensi Tab -->
-        <div id="adminTab_absensi" style="display: none;">
+        <!-- SECTION 4: REKAP ABSENSI -->
+        <div id="adminSec-absensi" class="admin-tab-section" style="display: none;">
           <!-- Attendance Table Card -->
           <div class="dashboard-card" style="border-top: 5px solid var(--accent);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
-            <h3>Rekapitulasi Absensi Harian Personel</h3>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button class="btn btn-secondary" onclick="exportAttendanceToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-                📊 Export Absen ke Excel
-              </button>
-              <button class="btn btn-danger" onclick="clearAllAttendance()" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
-                ⚠️ Hapus Semua Absen
-              </button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+              <h3>Rekapitulasi Absensi Harian Personel</h3>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-secondary" onclick="exportAttendanceToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+                  📊 Export Absen ke Excel
+                </button>
+                <button class="btn btn-danger" onclick="clearAllAttendance()" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                  ⚠️ Hapus Semua Absen
+                </button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tanggal & Waktu Absen</th>
+                    <th>NRP</th>
+                    <th>Nama Lengkap</th>
+                    <th>Pangkat</th>
+                    <th>Corps</th>
+                    <th>Kehadiran</th>
+                    <th>Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceTableBody">
+                  <!-- Attendance rows inserted dynamically -->
+                </tbody>
+              </table>
             </div>
           </div>
-
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Tanggal & Waktu Absen</th>
-                  <th>NRP</th>
-                  <th>Nama Lengkap</th>
-                  <th>Pangkat</th>
-                  <th>Corps</th>
-                  <th>Kehadiran</th>
-                  <th>Keterangan</th>
-                </tr>
-              </thead>
-              <tbody id="attendanceTableBody">
-                <!-- Attendance rows inserted dynamically -->
-              </tbody>
-            </table>
-          </div>
         </div>
-        </div> <!-- End adminTab_absensi -->
 
-        <!-- 6. Rekap Hasil Ujian Tab -->
-        <div id="adminTab_hasil" style="display: none;">
+        <!-- SECTION 5: REKAP NILAI UJIAN -->
+        <div id="adminSec-nilai" class="admin-tab-section" style="display: none;">
           <!-- Submissions Table Card -->
-          <div class="dashboard-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
-            <h3>Rekapitulasi Hasil Ujian Personel</h3>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button class="btn btn-secondary" onclick="exportResultsToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-                📝 Export Hasil ke Word
-              </button>
-              <button class="btn btn-secondary" onclick="exportResultsToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-                📊 Export Hasil ke Excel
-              </button>
-              <button class="btn btn-danger" onclick="clearAllSubmissions()" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
-                ⚠️ Hapus Semua Data
-              </button>
+          <div class="dashboard-card" style="border-top: 5px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+              <h3>Rekapitulasi Hasil Ujian Personel</h3>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-secondary" onclick="exportResultsToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+                  📝 Export Hasil ke Word
+                </button>
+                <button class="btn btn-secondary" onclick="exportResultsToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+                  📊 Export Hasil ke Excel
+                </button>
+                <button class="btn btn-danger" onclick="clearAllSubmissions()" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                  ⚠️ Hapus Semua Data
+                </button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tanggal & Waktu Ujian</th>
+                    <th>NRP</th>
+                    <th>Nama Lengkap</th>
+                    <th>Pangkat</th>
+                    <th>Corps</th>
+                    <th>Nilai</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="submissionsTableBody">
+                  <!-- Submission Rows inserted dynamically -->
+                </tbody>
+              </table>
             </div>
           </div>
+        </div>
 
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Tanggal & Waktu Ujian</th>
-                  <th>NRP</th>
-                  <th>Nama Lengkap</th>
-                  <th>Pangkat</th>
-                  <th>Corps</th>
-                  <th>Nilai</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="submissionsTableBody">
-                <!-- Submission Rows inserted dynamically -->
-              </tbody>
-            </table>
+        <!-- SECTION 6: CONFIGURATION -->
+        <div id="adminSec-pengaturan" class="admin-tab-section" style="display: none;">
+          <!-- Google Sheets Sync Configuration -->
+          <div class="dashboard-card" style="border-left: 5px solid var(--accent); background: linear-gradient(to right, var(--accent-light), #ffffff);">
+            <h3 style="display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif;">
+              📊 Sinkronisasi Database Google Sheets
+            </h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem; margin-bottom: 1rem;">
+              Hubungkan website ini ke Google Spreadsheet Anda agar data absen, personel, dan nilai sinkron secara otomatis antar perangkat.
+            </p>
+            <div style="display: flex; gap: 0.5rem; align-items: center; max-width: 750px; flex-wrap: wrap;">
+              <input type="text" id="googleSheetsApiUrl" placeholder="Tempel URL Web App dari Google Apps Script Anda (akhiran /exec)" style="flex: 1; min-width: 250px; padding: 0.55rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-size: 0.85rem;">
+              <button type="button" class="btn btn-accent" onclick="saveGoogleSheetsConfig()" style="font-size: 0.85rem; padding: 0.55rem 1.2rem;">
+                Simpan & Hubungkan
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="disconnectGoogleSheets()" id="disconnectSheetsBtn" style="font-size: 0.85rem; padding: 0.55rem 1.2rem; display: none;">
+                Putuskan
+              </button>
+            </div>
+            <div id="sheetsStatusMessage" style="font-size: 0.8rem; margin-top: 0.5rem; font-weight: 500;"></div>
           </div>
         </div>
-        </div> <!-- End adminTab_hasil -->
 
       </div>
 
@@ -1402,6 +1324,24 @@
     let currentRole = null; // 'siswa' or 'admin'
     let currentLoginTab = 'siswa';
 
+    // Helper to fetch with timeout fallback
+    async function fetchWithTimeout(resource, options = {}) {
+      const { timeout = 2500 } = options;
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      try {
+        const response = await fetch(resource, {
+          ...options,
+          signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+      } catch (error) {
+        clearTimeout(id);
+        throw error;
+      }
+    }
+
     // Database Google Sheets Web App REST API (with LocalStorage fallback)
     function getScriptUrl() {
       return localStorage.getItem('google_sheets_api_url') || "https://script.google.com/macros/s/AKfycbzCHBJTp5m4eEaN8pldyZTo1-xstFSMPJMGy8sHePjUvK8wicucWwU95SbgNuNA9pPxiQ/exec";
@@ -1421,7 +1361,7 @@
         return DEFAULT_QUESTIONS;
       }
       try {
-        const response = await fetch(url + "?action=getQuestions");
+        const response = await fetchWithTimeout(url + "?action=getQuestions");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1454,7 +1394,7 @@
       const url = getScriptUrl();
       if (!url) return;
       try {
-        const response = await fetch(url + "?action=saveQuestions", {
+        const response = await fetchWithTimeout(url + "?action=saveQuestions", {
           method: 'POST',
           body: JSON.stringify(questions)
         });
@@ -1479,7 +1419,7 @@
         return [];
       }
       try {
-        const response = await fetch(url + "?action=getUsers");
+        const response = await fetchWithTimeout(url + "?action=getUsers");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1510,7 +1450,7 @@
       const url = getScriptUrl();
       if (!url) return;
       try {
-        const response = await fetch(url + "?action=saveUsers", {
+        const response = await fetchWithTimeout(url + "?action=saveUsers", {
           method: 'POST',
           body: JSON.stringify(users)
         });
@@ -1535,7 +1475,7 @@
         return [];
       }
       try {
-        const response = await fetch(url + "?action=getSubmissions");
+        const response = await fetchWithTimeout(url + "?action=getSubmissions");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1564,7 +1504,7 @@
       const url = getScriptUrl();
       if (!url) return;
       try {
-        const response = await fetch(url + "?action=saveSubmissions", {
+        const response = await fetchWithTimeout(url + "?action=saveSubmissions", {
           method: 'POST',
           body: JSON.stringify(submissions)
         });
@@ -1589,7 +1529,7 @@
         return [];
       }
       try {
-        const response = await fetch(url + "?action=getAttendance");
+        const response = await fetchWithTimeout(url + "?action=getAttendance");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1618,7 +1558,7 @@
       const url = getScriptUrl();
       if (!url) return;
       try {
-        const response = await fetch(url + "?action=saveAttendance", {
+        const response = await fetchWithTimeout(url + "?action=saveAttendance", {
           method: 'POST',
           body: JSON.stringify(attendance)
         });
@@ -1640,17 +1580,46 @@
     ];
 
     // Initialize Page
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Clean up old invalid database URLs and corrupted local storage values
+      try {
+        const savedUrl = localStorage.getItem('google_sheets_api_url');
+        if (savedUrl && !savedUrl.includes('script.google.com')) {
+          localStorage.removeItem('google_sheets_api_url');
+        }
+      } catch(e) {}
+
+      try {
+        const usersLocal = localStorage.getItem('registeredUsers');
+        if (usersLocal && (!usersLocal.startsWith('[') || usersLocal.includes('Permission denied') || usersLocal.includes('error'))) {
+          localStorage.removeItem('registeredUsers');
+        }
+      } catch(e) {}
+
+      try {
+        const questionsLocal = localStorage.getItem('exam_questions');
+        if (questionsLocal && (!questionsLocal.startsWith('[') || questionsLocal.includes('Permission denied') || questionsLocal.includes('error'))) {
+          localStorage.removeItem('exam_questions');
+        }
+      } catch(e) {}
+
+      try {
+        const subsLocal = localStorage.getItem('submissions');
+        if (subsLocal && (!subsLocal.startsWith('[') || subsLocal.includes('Permission denied') || subsLocal.includes('error'))) {
+          localStorage.removeItem('submissions');
+        }
+      } catch(e) {}
+
       // Seed default questions if empty
       if (!localStorage.getItem('exam_questions')) {
         localStorage.setItem('exam_questions', JSON.stringify(DEFAULT_QUESTIONS));
       }
 
-      // Fetch online data to sync local storage on load (in background)
-      fetchQuestionsOnline();
-      fetchUsersOnline();
-      fetchSubmissionsOnline();
-      fetchAttendanceOnline();
+      // Fetch online data to sync local storage on load
+      await fetchQuestionsOnline();
+      await fetchUsersOnline();
+      await fetchSubmissionsOnline();
+      await fetchAttendanceOnline();
 
       // Check active session if page refreshed
       const savedRole = sessionStorage.getItem('activeRole');
@@ -1889,39 +1858,52 @@
       errorBox.style.display = 'none';
       successBox.style.display = 'none';
 
-      // 1. Check custom database online
-      const users = await fetchUsersOnline();
-      const customUser = users.find(u => u.username.toLowerCase() === userVal.toLowerCase() && u.password === passVal);
+      // Button loading indicator
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      const originalHtml = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Mohon Tunggu...';
 
-      if (customUser) {
-        if (customUser.role === currentLoginTab) {
+      try {
+        // 1. Check custom database online
+        const users = await fetchUsersOnline();
+        const customUser = users.find(u => u.username.toLowerCase() === userVal.toLowerCase() && u.password === passVal);
+
+        if (customUser) {
           const roleLabel = customUser.role === 'admin' ? 'Operator / Admin' : 'Personel / Siswa';
           loginSuccess(customUser.role, roleLabel, customUser.username, customUser.profile);
           return;
-        } else {
-          errorBox.querySelector('span').textContent = `Akun terdaftar sebagai ${customUser.role === 'admin' ? 'Operator' : 'Personel'}. Harap ganti tab login di atas.`;
-          errorBox.style.display = 'flex';
-          return;
         }
-      }
 
-      // 2. Check defaults
-      if (currentLoginTab === 'siswa') {
-        if (userVal === 'siswa' && passVal === 'siswa123') {
-          // default student fallback profile
-          const defaultProfile = { nama: 'Siswa Cadangan', nrp: '000000', pangkat: 'Letda', corps: 'Infanteri (Inf)' };
-          loginSuccess('siswa', 'Personel / Siswa', 'siswa', defaultProfile);
-        } else {
-          errorBox.querySelector('span').textContent = 'Username atau Password salah.';
-          errorBox.style.display = 'flex';
+        // 2. Check defaults (Auto-detect role based on username)
+        if (userVal.toLowerCase() === 'admin') {
+          if (passVal === 'admin123') {
+            loginSuccess('admin', 'Operator / Admin', 'admin', {});
+            return;
+          } else {
+            errorBox.querySelector('span').textContent = 'Username atau Password salah.';
+            errorBox.style.display = 'flex';
+            return;
+          }
         }
-      } else if (currentLoginTab === 'admin') {
-        if (userVal === 'admin' && passVal === 'admin123') {
-          loginSuccess('admin', 'Operator / Admin', 'admin', {});
-        } else {
-          errorBox.querySelector('span').textContent = 'Username atau Password salah.';
-          errorBox.style.display = 'flex';
+
+        if (userVal.toLowerCase() === 'siswa') {
+          if (passVal === 'siswa123') {
+            const defaultProfile = { nama: 'Siswa Cadangan', nrp: '000000', pangkat: 'Letda', corps: 'Infanteri (Inf)' };
+            loginSuccess('siswa', 'Personel / Siswa', 'siswa', defaultProfile);
+            return;
+          } else {
+            errorBox.querySelector('span').textContent = 'Username atau Password salah.';
+            errorBox.style.display = 'flex';
+            return;
+          }
         }
+
+        errorBox.querySelector('span').textContent = 'Username atau Password salah.';
+        errorBox.style.display = 'flex';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalHtml;
       }
     }
 
@@ -1942,7 +1924,7 @@
       showPanelForRole(role);
     }
 
-    function showPanelForRole(role) {
+    async function showPanelForRole(role) {
       const studentPortal = document.getElementById('studentPortal');
       const adminPortal = document.getElementById('adminPortal');
 
@@ -1956,36 +1938,14 @@
         studentPortal.style.display = 'none';
         adminPortal.style.display = 'block';
         
-        switchAdminTab('ringkasan');
+        await fetchQuestionsOnline();
+        renderAdminQuestions();
+        await fetchUsersOnline();
+        renderAdminPersonnel();
+        await fetchSubmissionsOnline();
+        await loadAdminDashboard();
         
-        fetchQuestionsOnline().then(() => renderAdminQuestions()).catch(e => console.error(e));
-        fetchUsersOnline().then(() => renderAdminPersonnel()).catch(e => console.error(e));
-        fetchSubmissionsOnline().then(() => loadAdminDashboard()).catch(e => console.error(e));
-      }
-    }
-
-    function switchAdminTab(tabName) {
-      const tabs = ['ringkasan', 'soal', 'personel', 'absensi', 'hasil', 'sync'];
-      tabs.forEach(t => {
-        const el = document.getElementById('adminTab_' + t);
-        if (el) el.style.display = 'none';
-      });
-
-      const selectedEl = document.getElementById('adminTab_' + tabName);
-      if (selectedEl) selectedEl.style.display = 'block';
-
-      const buttons = document.querySelectorAll('.admin-tab-btn');
-      buttons.forEach(btn => {
-        btn.style.background = '#f1f5f9';
-        btn.style.color = 'var(--text-main)';
-        btn.style.borderColor = 'var(--border-color)';
-      });
-
-      const activeBtn = document.getElementById('btnTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
-      if (activeBtn) {
-        activeBtn.style.background = 'var(--primary)';
-        activeBtn.style.color = '#ffffff';
-        activeBtn.style.borderColor = 'var(--primary)';
+        switchAdminTab('ringkasan');
       }
     }
 
@@ -2003,96 +1963,6 @@
       document.getElementById('profCorps').textContent = profile.corps || '-';
     }
 
-    function openEditProfile() {
-      const panel = document.getElementById('editProfilePanel');
-      const msgEl = document.getElementById('editProfileMsg');
-
-      // Populate current values
-      const savedProfileStr = sessionStorage.getItem('activeProfile');
-      let profile = {};
-      try { profile = JSON.parse(savedProfileStr || '{}'); } catch(e) {}
-
-      document.getElementById('editProfNama').value = profile.nama || '';
-      document.getElementById('editProfNrp').value = profile.nrp || '';
-      document.getElementById('editProfPangkat').value = profile.pangkat || '';
-      document.getElementById('editProfCorps').value = profile.corps || '';
-      document.getElementById('editProfPassBaru').value = '';
-      document.getElementById('editProfPassKonfirm').value = '';
-      if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
-
-      panel.style.display = 'block';
-      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function cancelEditProfile() {
-      document.getElementById('editProfilePanel').style.display = 'none';
-    }
-
-    async function saveProfile(event) {
-      event.preventDefault();
-      const msgEl = document.getElementById('editProfileMsg');
-
-      const nama = document.getElementById('editProfNama').value.trim();
-      const nrp = document.getElementById('editProfNrp').value.trim();
-      const pangkat = document.getElementById('editProfPangkat').value;
-      const corps = document.getElementById('editProfCorps').value;
-      const passBaru = document.getElementById('editProfPassBaru').value;
-      const passKonfirm = document.getElementById('editProfPassKonfirm').value;
-
-      if (!nama) {
-        msgEl.textContent = '❌ Nama lengkap tidak boleh kosong.';
-        msgEl.style.color = 'var(--error)';
-        msgEl.style.background = '#fef2f2';
-        msgEl.style.display = 'block';
-        return;
-      }
-
-      if (passBaru && passBaru.length < 4) {
-        msgEl.textContent = '❌ Password baru minimal 4 karakter.';
-        msgEl.style.color = 'var(--error)';
-        msgEl.style.background = '#fef2f2';
-        msgEl.style.display = 'block';
-        return;
-      }
-
-      if (passBaru && passBaru !== passKonfirm) {
-        msgEl.textContent = '❌ Konfirmasi password tidak cocok.';
-        msgEl.style.color = 'var(--error)';
-        msgEl.style.background = '#fef2f2';
-        msgEl.style.display = 'block';
-        return;
-      }
-
-      // Update profile in sessionStorage
-      const updatedProfile = { nama, nrp, pangkat, corps };
-      sessionStorage.setItem('activeProfile', JSON.stringify(updatedProfile));
-
-      // Update in users database (localStorage / online)
-      const activeUsername = sessionStorage.getItem('activeUsername');
-      const users = await fetchUsersOnline();
-      const idx = users.findIndex(u => u.username.toLowerCase() === (activeUsername || '').toLowerCase());
-      if (idx !== -1) {
-        users[idx].profile = updatedProfile;
-        if (passBaru) {
-          users[idx].password = passBaru;
-        }
-        await saveUsersOnline(users);
-      }
-
-      // Refresh the displayed profile card
-      loadStudentProfile();
-
-      msgEl.textContent = '✅ Profil berhasil diperbarui!';
-      msgEl.style.color = 'var(--success)';
-      msgEl.style.background = '#f0fdf4';
-      msgEl.style.display = 'block';
-
-      // Auto close after short delay
-      setTimeout(() => {
-        document.getElementById('editProfilePanel').style.display = 'none';
-      }, 1800);
-    }
-
     function openStudentTab(tab) {
       document.getElementById('studentMenuGrid').style.display = 'none';
       hideError();
@@ -2108,6 +1978,28 @@
         document.getElementById('studentUjianForm').style.display = 'block';
         document.getElementById('resultCard').style.display = 'none';
         renderStudentQuestions();
+    }
+
+    function switchAdminTab(tab) {
+      const panels = document.querySelectorAll('.admin-tab-section');
+      panels.forEach(p => p.style.display = 'none');
+      
+      const tabIds = ['ringkasan', 'soal', 'personel', 'absensi', 'nilai', 'pengaturan'];
+      tabIds.forEach(id => {
+        const btn = document.getElementById(`tabBtn-${id}`);
+        if (btn) {
+          btn.className = 'btn btn-secondary';
+        }
+      });
+      
+      const targetPanel = document.getElementById(`adminSec-${tab}`);
+      if (targetPanel) {
+        targetPanel.style.display = 'block';
+      }
+      
+      const targetBtn = document.getElementById(`tabBtn-${tab}`);
+      if (targetBtn) {
+        targetBtn.className = 'btn btn-primary';
       }
     }
 
