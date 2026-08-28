@@ -1271,12 +1271,102 @@
       </div>
     </div>
   </div>
-
   <script>
     // State
     let currentRole = null; // 'siswa' or 'admin'
     let currentLoginTab = 'siswa';
-    
+
+    // Database Firebase REST API
+    const DB_URL = "https://staf-renada-default-rtdb.asia-southeast1.firebasedatabase.app/";
+
+    async function fetchQuestionsOnline() {
+      try {
+        const response = await fetch(DB_URL + 'questions.json');
+        const data = await response.json();
+        if (data) {
+          const qList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
+          localStorage.setItem('exam_questions', JSON.stringify(qList));
+          return qList;
+        } else {
+          await saveQuestionsOnline(DEFAULT_QUESTIONS);
+          return DEFAULT_QUESTIONS;
+        }
+      } catch (e) {
+        console.error("Error fetching questions online:", e);
+        return JSON.parse(localStorage.getItem('exam_questions') || '[]');
+      }
+    }
+
+    async function saveQuestionsOnline(questions) {
+      try {
+        localStorage.setItem('exam_questions', JSON.stringify(questions));
+        await fetch(DB_URL + 'questions.json', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(questions)
+        });
+      } catch(e) {
+        console.error("Error saving questions online:", e);
+      }
+    }
+
+    async function fetchUsersOnline() {
+      try {
+        const response = await fetch(DB_URL + 'users.json');
+        const data = await response.json();
+        if (data) {
+          const userList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
+          localStorage.setItem('registeredUsers', JSON.stringify(userList));
+          return userList;
+        }
+        return JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      } catch (e) {
+        console.error("Error fetching users online:", e);
+        return JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      }
+    }
+
+    async function saveUsersOnline(users) {
+      try {
+        localStorage.setItem('registeredUsers', JSON.stringify(users));
+        await fetch(DB_URL + 'users.json', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(users)
+        });
+      } catch(e) {
+        console.error("Error saving users online:", e);
+      }
+    }
+
+    async function fetchSubmissionsOnline() {
+      try {
+        const response = await fetch(DB_URL + 'submissions.json');
+        const data = await response.json();
+        if (data) {
+          const subList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
+          localStorage.setItem('submissions', JSON.stringify(subList));
+          return subList;
+        }
+        return JSON.parse(localStorage.getItem('submissions') || '[]');
+      } catch(e) {
+        console.error("Error fetching submissions online:", e);
+        return JSON.parse(localStorage.getItem('submissions') || '[]');
+      }
+    }
+
+    async function saveSubmissionsOnline(submissions) {
+      try {
+        localStorage.setItem('submissions', JSON.stringify(submissions));
+        await fetch(DB_URL + 'submissions.json', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(submissions)
+        });
+      } catch(e) {
+        console.error("Error saving submissions online:", e);
+      }
+    }
     // Default mock questions to seed localStorage on first load
     const DEFAULT_QUESTIONS = [
       { id: 1, text: 'Sebutkan lambang sila ketiga Pancasila dan jelaskan maknanya!', keywords: ['beringin', 'pohon'] },
@@ -1287,11 +1377,16 @@
     ];
 
     // Initialize Page
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       // Seed default questions if empty
       if (!localStorage.getItem('exam_questions')) {
         localStorage.setItem('exam_questions', JSON.stringify(DEFAULT_QUESTIONS));
       }
+
+      // Fetch online data to sync local storage on load
+      await fetchQuestionsOnline();
+      await fetchUsersOnline();
+      await fetchSubmissionsOnline();
 
       // Check active session if page refreshed
       const savedRole = sessionStorage.getItem('activeRole');
@@ -1388,7 +1483,7 @@
     }
 
     // Handle User Registration
-    function handleRegister(event) {
+    async function handleRegister(event) {
       event.preventDefault();
       const role = document.getElementById('regRole').value;
       const username = document.getElementById('regUsername').value.trim();
@@ -1427,7 +1522,7 @@
       }
 
       // Check username duplicate in localStorage
-      const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      const users = await fetchUsersOnline();
       const userExists = users.some(u => u.username.toLowerCase() === username.toLowerCase());
 
       if (userExists || username.toLowerCase() === 'siswa' || username.toLowerCase() === 'admin') {
@@ -1438,7 +1533,7 @@
 
       const newUser = { role, username, password, profile };
       users.push(newUser);
-      localStorage.setItem('registeredUsers', JSON.stringify(users));
+      await saveUsersOnline(users);
 
       // Clear Form and redirect to login
       document.getElementById('registerForm').reset();
@@ -1449,7 +1544,7 @@
     }
 
     // Handle Login authentication
-    function handleLogin(event) {
+    async function handleLogin(event) {
       event.preventDefault();
       const userVal = document.getElementById('username').value.trim();
       const passVal = document.getElementById('password').value;
@@ -1459,8 +1554,8 @@
       errorBox.style.display = 'none';
       successBox.style.display = 'none';
 
-      // 1. Check custom database in localStorage
-      const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      // 1. Check custom database online
+      const users = await fetchUsersOnline();
       const customUser = users.find(u => u.username.toLowerCase() === userVal.toLowerCase() && u.password === passVal);
 
       if (customUser) {
@@ -1512,7 +1607,7 @@
       showPanelForRole(role);
     }
 
-    function showPanelForRole(role) {
+    async function showPanelForRole(role) {
       const studentPortal = document.getElementById('studentPortal');
       const adminPortal = document.getElementById('adminPortal');
 
@@ -1520,6 +1615,7 @@
         studentPortal.style.display = 'block';
         adminPortal.style.display = 'none';
         
+        await fetchQuestionsOnline();
         // Render dynamic student exam textareas
         renderStudentQuestions();
         
@@ -1528,8 +1624,11 @@
         studentPortal.style.display = 'none';
         adminPortal.style.display = 'block';
         
+        await fetchQuestionsOnline();
         renderAdminQuestions();
+        await fetchUsersOnline();
         renderAdminPersonnel();
+        await fetchSubmissionsOnline();
         loadAdminDashboard();
       }
     }
@@ -1682,10 +1781,10 @@
       reader.readAsDataURL(file);
     };
 
-    // Exam Submission & local storage saving
-    function submitExam() {
+    // Exam Submission & online database saving
+    async function submitExam() {
       try {
-        const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+        const questions = await fetchQuestionsOnline();
         if (questions.length === 0) {
           alert('Tidak ada soal ujian yang bisa dikirim.');
           return;
@@ -1757,9 +1856,9 @@
           totalQuestions
         };
 
-        const existing = JSON.parse(localStorage.getItem('submissions') || '[]');
+        const existing = await fetchSubmissionsOnline();
         existing.push(newSubmission);
-        localStorage.setItem('submissions', JSON.stringify(existing));
+        await saveSubmissionsOnline(existing);
 
         alert('✅ Berhasil! Jawaban ujian dan dokumen Anda telah sukses terkirim ke Operator.');
 
