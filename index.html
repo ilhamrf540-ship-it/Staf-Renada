@@ -1653,19 +1653,13 @@
     }
 
     async function saveUsersOnline(users) {
-      // Strip photo from user objects before saving online (photos stored locally)
-      const usersForOnline = users.map(u => {
-        if (!u.profile) return u;
-        const { photo, ...profileWithoutPhoto } = u.profile;
-        return { ...u, profile: profileWithoutPhoto };
-      });
-      localStorage.setItem('registeredUsers', JSON.stringify(users)); // keep full locally
+      localStorage.setItem('registeredUsers', JSON.stringify(users));
       const url = getScriptUrl();
       if (!url) return;
       try {
         const response = await fetch(url + "?action=saveUsers", {
           method: 'POST',
-          body: JSON.stringify(usersForOnline) // send without photos
+          body: JSON.stringify(users)
         });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -1675,18 +1669,29 @@
       }
     }
 
-    // Helper: get/set photo stored locally per username
-    function getProfilePhoto(username) {
-      if (!username) return null;
-      return localStorage.getItem('profilePhoto_' + username) || null;
-    }
-    function setProfilePhoto(username, dataUrl) {
-      if (!username) return;
-      if (dataUrl) {
-        localStorage.setItem('profilePhoto_' + username, dataUrl);
-      } else {
-        localStorage.removeItem('profilePhoto_' + username);
-      }
+    // Kompres gambar ke thumbnail kecil (max 150px, JPEG quality 0.6) → base64 ~5-10KB
+    function compressImage(file, maxSize, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onerror = reject;
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+            else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
     }
 
     async function fetchSubmissionsOnline() {
@@ -2180,8 +2185,8 @@
       document.getElementById('profPangkat').textContent = profile.pangkat || '-';
       document.getElementById('profCorps').textContent = profile.corps || '-';
 
-      // Handle avatar foto/inisial — foto dibaca dari localStorage lokal
-      const photo = getProfilePhoto(activeUser);
+      // Handle avatar foto/inisial
+      const photo = profile.photo || null;
       const photoEl = document.getElementById('profPhoto');
       const initialsEl = document.getElementById('profInitials');
       if (photo) {
@@ -2213,9 +2218,8 @@
       document.getElementById('editProfPassKonfirm').value = '';
       if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
 
-      // Populate photo preview — foto dibaca dari localStorage lokal
-      const activeUser = sessionStorage.getItem('activeUsername');
-      const photo = getProfilePhoto(activeUser);
+      // Populate photo preview dari profile.photo
+      const photo = profile.photo || null;
       const preview = document.getElementById('editProfPhotoPreview');
       const initialsEl = document.getElementById('editProfPhotoInitials');
       const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
@@ -2231,33 +2235,34 @@
         initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
         removeBtn.style.display = 'none';
       }
-      // Clear file input
       document.getElementById('editProfPhotoInput').value = '';
 
       panel.style.display = 'block';
       panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function handleProfilePhotoChange(input) {
+    async function handleProfilePhotoChange(input) {
       const file = input.files[0];
       if (!file) return;
-      if (file.size > 2 * 1024 * 1024) {
-        alert('Ukuran foto maksimal 2MB.');
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Ukuran foto maksimal 5MB.');
         input.value = '';
         return;
       }
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const dataUrl = e.target.result;
+      try {
+        // Kompres ke thumbnail 150x150 JPEG quality 0.6 (∼5-10KB)
+        const compressed = await compressImage(file, 150, 0.6);
         const preview = document.getElementById('editProfPhotoPreview');
         const initialsEl = document.getElementById('editProfPhotoInitials');
         const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
-        preview.src = dataUrl;
+        preview.src = compressed;
         preview.style.display = 'block';
         initialsEl.style.display = 'none';
         removeBtn.style.display = 'inline-block';
-      };
-      reader.readAsDataURL(file);
+      } catch(e) {
+        alert('Gagal memproses foto. Coba foto lain.');
+        input.value = '';
+      }
     }
 
     function removeProfilePhoto() {
@@ -2315,22 +2320,27 @@
         return;
       }
 
-      // Build updatedProfile (without photo — stored separately)
+      // Build updatedProfile dengan foto yang sudah dikompres
       const preview = document.getElementById('editProfPhotoPreview');
       const activeUsername = sessionStorage.getItem('activeUsername');
 
-      // Save photo to localStorage per-user key
+      // Ambil foto lama dari profile yang ada di session
+      const existingProfileStr = sessionStorage.getItem('activeProfile');
+      let existingProfile = {};
+      try { existingProfile = JSON.parse(existingProfileStr || '{}'); } catch(e) {}
+
+      let photo = existingProfile.photo || null;
       if (preview && preview.style.display !== 'none' && preview.src && preview.src.startsWith('data:')) {
-        setProfilePhoto(activeUsername, preview.src);
+        photo = preview.src; // sudah dikompres oleh handleProfilePhotoChange
       } else if (preview && preview.style.display === 'none') {
-        setProfilePhoto(activeUsername, null); // explicitly removed
+        photo = null; // dihapus
       }
 
-      // Update profile in sessionStorage (no photo field needed)
-      const updatedProfile = { nama, nrp, pangkat, corps };
+      // Update profile di sessionStorage
+      const updatedProfile = { nama, nrp, pangkat, corps, photo };
       sessionStorage.setItem('activeProfile', JSON.stringify(updatedProfile));
 
-      // Update in users database (localStorage / online)
+      // Update di database users (localStorage + online)
       const users = await fetchUsersOnline();
       const idx = users.findIndex(u => u.username.toLowerCase() === (activeUsername || '').toLowerCase());
       if (idx !== -1) {
@@ -2341,7 +2351,7 @@
         await saveUsersOnline(users);
       }
 
-      // Refresh the displayed profile card
+      // Refresh tampilan kartu profil
       loadStudentProfile();
 
       msgEl.textContent = '✅ Profil berhasil diperbarui!';
@@ -2349,7 +2359,6 @@
       msgEl.style.background = '#f0fdf4';
       msgEl.style.display = 'block';
 
-      // Auto close after short delay
       setTimeout(() => {
         document.getElementById('editProfilePanel').style.display = 'none';
       }, 1800);
@@ -3397,8 +3406,8 @@
         card.onmouseleave = () => { card.style.borderColor = 'var(--border-color)'; card.style.boxShadow = 'var(--shadow-sm)'; card.style.transform = 'none'; };
         card.onclick = () => openEditPersonnelModal(student.username);
 
-        // Foto dari localStorage lokal (bukan dari online sync)
-        const photo = getProfilePhoto(student.username);
+        // Foto dari profile.photo (sudah dikompres, bisa sync online)
+        const photo = p.photo || null;
         card.innerHTML = `
           <div style="width: 42px; height: 42px; min-width:42px; border-radius: 50%; overflow:hidden; flex-shrink:0; border: 2.5px solid var(--primary); box-shadow: 0 1px 4px rgba(30,58,138,0.15);">
             ${photo
