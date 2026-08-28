@@ -1039,6 +1039,26 @@
           </div>
         </div>
 
+        <!-- Google Sheets Sync Configuration -->
+        <div class="dashboard-card" style="border-left: 5px solid var(--accent); background: linear-gradient(to right, var(--accent-light), #ffffff);">
+          <h3 style="display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif;">
+            📊 Sinkronisasi Database Google Sheets
+          </h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem; margin-bottom: 1rem;">
+            Hubungkan website ini ke Google Spreadsheet Anda agar data absen, personel, dan nilai sinkron secara otomatis antar perangkat.
+          </p>
+          <div style="display: flex; gap: 0.5rem; align-items: center; max-width: 750px; flex-wrap: wrap;">
+            <input type="text" id="googleSheetsApiUrl" placeholder="Tempel URL Web App dari Google Apps Script Anda (akhiran /exec)" style="flex: 1; min-width: 250px; padding: 0.55rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-size: 0.85rem;">
+            <button type="button" class="btn btn-accent" onclick="saveGoogleSheetsConfig()" style="font-size: 0.85rem; padding: 0.55rem 1.2rem;">
+              Simpan & Hubungkan
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="disconnectGoogleSheets()" id="disconnectSheetsBtn" style="font-size: 0.85rem; padding: 0.55rem 1.2rem; display: none;">
+              Putuskan
+            </button>
+          </div>
+          <div id="sheetsStatusMessage" style="font-size: 0.8rem; margin-top: 0.5rem; font-weight: 500;"></div>
+        </div>
+
         <!-- Management Dynamic Questions Block -->
         <div class="dashboard-card">
           <h3>Manajemen Soal Ujian Esai</h3>
@@ -1276,52 +1296,45 @@
     let currentRole = null; // 'siswa' or 'admin'
     let currentLoginTab = 'siswa';
 
-    // Database restful-api.dev REST API
-    const USERS_OBJ_ID = "ff8081819ff5b11001a0473360694260";
-    const QUESTIONS_OBJ_ID = "ff8081819ff5b11001a04733bba04261";
-    const SUBMISSIONS_OBJ_ID = "ff8081819ff5b11001a04733ede84263";
-    const API_URL = "https://api.restful-api.dev/objects/";
+    // Database Google Sheets Web App REST API (with LocalStorage fallback)
+    function getScriptUrl() {
+      return localStorage.getItem('google_sheets_api_url') || "";
+    }
 
     async function fetchQuestionsOnline() {
+      const url = getScriptUrl();
+      if (!url) {
+        return JSON.parse(localStorage.getItem('exam_questions') || '[]');
+      }
       try {
-        const response = await fetch(API_URL + QUESTIONS_OBJ_ID);
+        const response = await fetch(url + "?action=getQuestions");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const resData = await response.json();
-        if (resData && resData.data && Array.isArray(resData.data.list)) {
-          const qList = resData.data.list.filter(q => q && typeof q === 'object' && q.id);
-          if (qList.length > 0) {
-            localStorage.setItem('exam_questions', JSON.stringify(qList));
-            return qList;
+        const qList = await response.json();
+        if (Array.isArray(qList)) {
+          const validQs = qList.filter(q => q && typeof q === 'object' && q.id);
+          if (validQs.length > 0) {
+            localStorage.setItem('exam_questions', JSON.stringify(validQs));
+            return validQs;
           }
         }
         await saveQuestionsOnline(DEFAULT_QUESTIONS);
         return DEFAULT_QUESTIONS;
       } catch (e) {
         console.error("Error fetching questions online:", e);
-        try {
-          const localData = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-          if (Array.isArray(localData)) {
-            const validLocal = localData.filter(q => q && typeof q === 'object' && q.id);
-            if (validLocal.length > 0) return validLocal;
-          }
-        } catch(err) {}
-        localStorage.setItem('exam_questions', JSON.stringify(DEFAULT_QUESTIONS));
-        return DEFAULT_QUESTIONS;
+        return JSON.parse(localStorage.getItem('exam_questions') || '[]');
       }
     }
 
     async function saveQuestionsOnline(questions) {
+      localStorage.setItem('exam_questions', JSON.stringify(questions));
+      const url = getScriptUrl();
+      if (!url) return;
       try {
-        localStorage.setItem('exam_questions', JSON.stringify(questions));
-        const response = await fetch(API_URL + QUESTIONS_OBJ_ID, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: "StafRenadaQuestions",
-            data: { list: questions }
-          })
+        const response = await fetch(url + "?action=saveQuestions", {
+          method: 'POST',
+          body: JSON.stringify(questions)
         });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -1332,14 +1345,17 @@
     }
 
     async function fetchUsersOnline() {
+      const url = getScriptUrl();
+      if (!url) {
+        return JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      }
       try {
-        const response = await fetch(API_URL + USERS_OBJ_ID);
+        const response = await fetch(url + "?action=getUsers");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const resData = await response.json();
-        if (resData && resData.data && Array.isArray(resData.data.list)) {
-          const userList = resData.data.list;
+        const userList = await response.json();
+        if (Array.isArray(userList)) {
           const validUsers = userList.filter(u => u && typeof u === 'object' && u.username);
           localStorage.setItem('registeredUsers', JSON.stringify(validUsers));
           return validUsers;
@@ -1361,15 +1377,13 @@
     }
 
     async function saveUsersOnline(users) {
+      localStorage.setItem('registeredUsers', JSON.stringify(users));
+      const url = getScriptUrl();
+      if (!url) return;
       try {
-        localStorage.setItem('registeredUsers', JSON.stringify(users));
-        const response = await fetch(API_URL + USERS_OBJ_ID, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: "StafRenadaUsers",
-            data: { list: users }
-          })
+        const response = await fetch(url + "?action=saveUsers", {
+          method: 'POST',
+          body: JSON.stringify(users)
         });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -1380,14 +1394,17 @@
     }
 
     async function fetchSubmissionsOnline() {
+      const url = getScriptUrl();
+      if (!url) {
+        return JSON.parse(localStorage.getItem('submissions') || '[]');
+      }
       try {
-        const response = await fetch(API_URL + SUBMISSIONS_OBJ_ID);
+        const response = await fetch(url + "?action=getSubmissions");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const resData = await response.json();
-        if (resData && resData.data && Array.isArray(resData.data.list)) {
-          const subList = resData.data.list;
+        const subList = await response.json();
+        if (Array.isArray(subList)) {
           const validSubs = subList.filter(s => s && typeof s === 'object' && s.username);
           localStorage.setItem('submissions', JSON.stringify(validSubs));
           return validSubs;
@@ -1407,15 +1424,13 @@
     }
 
     async function saveSubmissionsOnline(submissions) {
+      localStorage.setItem('submissions', JSON.stringify(submissions));
+      const url = getScriptUrl();
+      if (!url) return;
       try {
-        localStorage.setItem('submissions', JSON.stringify(submissions));
-        const response = await fetch(API_URL + SUBMISSIONS_OBJ_ID, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: "StafRenadaSubmissions",
-            data: { list: submissions }
-          })
+        const response = await fetch(url + "?action=saveSubmissions", {
+          method: 'POST',
+          body: JSON.stringify(submissions)
         });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -1462,6 +1477,9 @@
       
       // Auto dates
       setTodayDate();
+
+      // Check Google Sheets Status
+      checkGoogleSheetsStatus();
     });
 
     function setTodayDate() {
@@ -1474,6 +1492,74 @@
       const formattedToday = yyyy + '-' + mm + '-' + dd;
       const dateEl = document.getElementById('tanggal');
       if (dateEl) dateEl.value = formattedToday;
+    }
+
+    // Google Sheets Config Helpers
+    function saveGoogleSheetsConfig() {
+      const url = document.getElementById('googleSheetsApiUrl').value.trim();
+      const statusMsg = document.getElementById('sheetsStatusMessage');
+      
+      if (!url) {
+        statusMsg.textContent = "❌ Harap masukkan URL Web App yang valid.";
+        statusMsg.style.color = "var(--error)";
+        return;
+      }
+      
+      if (!url.startsWith("https://script.google.com/")) {
+        statusMsg.textContent = "❌ URL harus berawalan dari Google Script (https://script.google.com/)";
+        statusMsg.style.color = "var(--error)";
+        return;
+      }
+      
+      localStorage.setItem('google_sheets_api_url', url);
+      statusMsg.textContent = "⏳ Mencoba menghubungkan ke Google Sheets...";
+      statusMsg.style.color = "var(--text-muted)";
+      
+      // Test the URL connection by fetching users
+      fetch(url + "?action=getUsers")
+        .then(res => {
+          if (res.ok) {
+            statusMsg.textContent = "✅ Sukses terhubung ke Google Sheets! Sinkronisasi aktif.";
+            statusMsg.style.color = "var(--success)";
+            document.getElementById('disconnectSheetsBtn').style.display = 'inline-block';
+            // Sync all database data immediately
+            setTimeout(() => {
+              location.reload();
+            }, 1500);
+          } else {
+            throw new Error();
+          }
+        })
+        .catch(err => {
+          statusMsg.textContent = "⚠️ Gagal terhubung. Pastikan Web App Anda di-deploy dengan akses 'Anyone'.";
+          statusMsg.style.color = "var(--error)";
+        });
+    }
+
+    function disconnectGoogleSheets() {
+      localStorage.removeItem('google_sheets_api_url');
+      document.getElementById('googleSheetsApiUrl').value = "";
+      document.getElementById('disconnectSheetsBtn').style.display = 'none';
+      const statusMsg = document.getElementById('sheetsStatusMessage');
+      statusMsg.textContent = "🔌 Sinkronisasi dinonaktifkan. Menggunakan penyimpanan lokal browser (LocalStorage).";
+      statusMsg.style.color = "var(--text-muted)";
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    }
+
+    function checkGoogleSheetsStatus() {
+      const url = localStorage.getItem('google_sheets_api_url');
+      const inputEl = document.getElementById('googleSheetsApiUrl');
+      const disBtn = document.getElementById('disconnectSheetsBtn');
+      const statusMsg = document.getElementById('sheetsStatusMessage');
+      
+      if (url && inputEl && disBtn && statusMsg) {
+        inputEl.value = url;
+        disBtn.style.display = 'inline-block';
+        statusMsg.textContent = "✅ Terhubung ke Google Sheets (Sinkronisasi Aktif)";
+        statusMsg.style.color = "var(--success)";
+      }
     }
 
     // Switch Login Tabs
