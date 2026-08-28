@@ -1731,8 +1731,8 @@
             if (validLocal.length > 0) return validLocal;
           }
         } catch(err) {}
-        localStorage.setItem('exam_questions', JSON.stringify(DEFAULT_QUESTIONS));
-        return DEFAULT_QUESTIONS;
+        localStorage.setItem('exam_questions', JSON.stringify([]));
+        return [];
       }
       try {
         const response = await fetch(url + "?action=getQuestions");
@@ -1747,8 +1747,8 @@
             return validQs;
           }
         }
-        await saveQuestionsOnline(DEFAULT_QUESTIONS);
-        return DEFAULT_QUESTIONS;
+        await saveQuestionsOnline([]);
+        return [];
       } catch (e) {
         console.error("Error fetching questions online:", e);
         try {
@@ -1758,8 +1758,8 @@
             if (validLocal.length > 0) return validLocal;
           }
         } catch(err) {}
-        localStorage.setItem('exam_questions', JSON.stringify(DEFAULT_QUESTIONS));
-        return DEFAULT_QUESTIONS;
+        localStorage.setItem('exam_questions', JSON.stringify([]));
+        return [];
       }
     }
 
@@ -1979,13 +1979,6 @@
     }
 
     // Default mock questions to seed localStorage on first load
-    const DEFAULT_QUESTIONS = [
-      { id: 1, text: 'Sebutkan lambang sila ketiga Pancasila dan jelaskan maknanya!', keywords: ['beringin', 'pohon'] },
-      { id: 2, text: 'Siapakah pencipta lagu kebangsaan Indonesia Raya?', keywords: ['supratman'] },
-      { id: 3, text: 'Berapakah hasil dari 15 + 3 x 4? Jelaskan langkah pengerjaannya!', keywords: ['27', 'perkalian'] },
-      { id: 4, text: 'Mengapa planet Mars sering dijuluki sebagai "Planet Merah"?', keywords: ['besi', 'oksida', 'karat', 'merah'] },
-      { id: 5, text: 'Manakah penulisan kata yang baku antara \'apotek\' dan \'apotik\'? Berikan alasan singkat Anda!', keywords: ['apotek'] }
-    ];
 
     // UI Settings Logic
     function loadUISettings() {
@@ -2078,9 +2071,25 @@
     document.addEventListener("DOMContentLoaded", () => {
       loadUISettings();
       populateAdminUIForm();
-      // Seed default questions if empty
+      // Ensure default mock questions are completely purged from old memory
+      try {
+        let existingQ = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+        if (existingQ.length > 0) {
+          existingQ = existingQ.filter(q => {
+            const isMock = (q.id === 1 && q.text.includes('Pancasila')) ||
+                           (q.id === 2 && q.text.includes('Indonesia Raya')) ||
+                           (q.id === 3 && q.text.includes('15 + 3 x 4')) ||
+                           (q.id === 4 && q.text.includes('Planet Merah')) ||
+                           (q.id === 5 && q.text.includes('apotek'));
+            return !isMock;
+          });
+          localStorage.setItem('exam_questions', JSON.stringify(existingQ));
+        }
+      } catch(e) {}
+
+      // Seed default data if completely empty
       if (!localStorage.getItem('exam_questions')) {
-        localStorage.setItem('exam_questions', JSON.stringify(DEFAULT_QUESTIONS));
+        localStorage.setItem('exam_questions', JSON.stringify([]));
       }
 
       // Fetch online data to sync local storage on load (in background)
