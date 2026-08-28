@@ -2978,10 +2978,13 @@
     // MANAGEMENT PERSONNEL DATABASE (CRUD)
     // ==========================================
 
-    function renderAdminPersonnel() {
-      const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const students = users.filter(u => u.role === 'siswa');
+    async function renderAdminPersonnel() {
       const tbody = document.getElementById('adminPersonnelTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.5rem;">⏳ Memuat data personil...</td></tr>`;
+
+      const users = await fetchUsersOnline();
+      const students = users.filter(u => u.role === 'siswa');
       tbody.innerHTML = '';
 
       students.forEach(student => {
@@ -3009,7 +3012,7 @@
       }
     }
 
-    function savePersonnel(event) {
+    async function savePersonnel(event) {
       event.preventDefault();
       const idVal = document.getElementById('editPersId').value; // old username key
       const usernameVal = document.getElementById('editPersUsername').value.trim();
@@ -3019,7 +3022,7 @@
       const pangkatVal = document.getElementById('editPersPangkat').value;
       const corpsVal = document.getElementById('editPersCorps').value;
 
-      let users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      let users = await fetchUsersOnline();
 
       // Check duplicates if username changes or new registration
       if (idVal !== usernameVal) {
@@ -3040,13 +3043,13 @@
         users.push({ role: 'siswa', username: usernameVal, password: passwordVal, profile });
       }
 
-      localStorage.setItem('registeredUsers', JSON.stringify(users));
+      await saveUsersOnline(users);
       cancelEditPersonnel();
-      renderAdminPersonnel();
+      await renderAdminPersonnel();
     }
 
-    function editPersonnel(username) {
-      const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    async function editPersonnel(username) {
+      const users = await fetchUsersOnline();
       const user = users.find(u => u.username === username);
       if (!user) return;
 
@@ -3072,12 +3075,12 @@
       document.getElementById('submitPersBtnText').textContent = 'Tambah Personel Baru';
     }
 
-    function deletePersonnel(username) {
+    async function deletePersonnel(username) {
       if (!confirm(`Apakah Anda yakin ingin menghapus akun personel "${username}"?`)) return;
-      let users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      let users = await fetchUsersOnline();
       users = users.filter(u => u.username !== username);
-      localStorage.setItem('registeredUsers', JSON.stringify(users));
-      renderAdminPersonnel();
+      await saveUsersOnline(users);
+      await renderAdminPersonnel();
     }
 
     // ==========================================
