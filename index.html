@@ -1282,8 +1282,11 @@
     async function fetchQuestionsOnline() {
       try {
         const response = await fetch(DB_URL + 'questions.json');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
-        if (data) {
+        if (data && !data.error) {
           const qList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
           localStorage.setItem('exam_questions', JSON.stringify(qList));
           return qList;
@@ -1300,11 +1303,14 @@
     async function saveQuestionsOnline(questions) {
       try {
         localStorage.setItem('exam_questions', JSON.stringify(questions));
-        await fetch(DB_URL + 'questions.json', {
+        const response = await fetch(DB_URL + 'questions.json', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(questions)
         });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
       } catch(e) {
         console.error("Error saving questions online:", e);
       }
@@ -1313,8 +1319,11 @@
     async function fetchUsersOnline() {
       try {
         const response = await fetch(DB_URL + 'users.json');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
-        if (data) {
+        if (data && !data.error) {
           const userList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
           localStorage.setItem('registeredUsers', JSON.stringify(userList));
           return userList;
@@ -1329,11 +1338,14 @@
     async function saveUsersOnline(users) {
       try {
         localStorage.setItem('registeredUsers', JSON.stringify(users));
-        await fetch(DB_URL + 'users.json', {
+        const response = await fetch(DB_URL + 'users.json', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(users)
         });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
       } catch(e) {
         console.error("Error saving users online:", e);
       }
@@ -1342,8 +1354,11 @@
     async function fetchSubmissionsOnline() {
       try {
         const response = await fetch(DB_URL + 'submissions.json');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
-        if (data) {
+        if (data && !data.error) {
           const subList = Array.isArray(data) ? data.filter(Boolean) : Object.keys(data).map(k => data[k]);
           localStorage.setItem('submissions', JSON.stringify(subList));
           return subList;
@@ -1358,11 +1373,14 @@
     async function saveSubmissionsOnline(submissions) {
       try {
         localStorage.setItem('submissions', JSON.stringify(submissions));
-        await fetch(DB_URL + 'submissions.json', {
+        const response = await fetch(DB_URL + 'submissions.json', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(submissions)
         });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
       } catch(e) {
         console.error("Error saving submissions online:", e);
       }
