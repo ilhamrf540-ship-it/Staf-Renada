@@ -1653,19 +1653,39 @@
     }
 
     async function saveUsersOnline(users) {
-      localStorage.setItem('registeredUsers', JSON.stringify(users));
+      // Strip photo from user objects before saving online (photos stored locally)
+      const usersForOnline = users.map(u => {
+        if (!u.profile) return u;
+        const { photo, ...profileWithoutPhoto } = u.profile;
+        return { ...u, profile: profileWithoutPhoto };
+      });
+      localStorage.setItem('registeredUsers', JSON.stringify(users)); // keep full locally
       const url = getScriptUrl();
       if (!url) return;
       try {
         const response = await fetch(url + "?action=saveUsers", {
           method: 'POST',
-          body: JSON.stringify(users)
+          body: JSON.stringify(usersForOnline) // send without photos
         });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
       } catch(e) {
         console.error("Error saving users online:", e);
+      }
+    }
+
+    // Helper: get/set photo stored locally per username
+    function getProfilePhoto(username) {
+      if (!username) return null;
+      return localStorage.getItem('profilePhoto_' + username) || null;
+    }
+    function setProfilePhoto(username, dataUrl) {
+      if (!username) return;
+      if (dataUrl) {
+        localStorage.setItem('profilePhoto_' + username, dataUrl);
+      } else {
+        localStorage.removeItem('profilePhoto_' + username);
       }
     }
 
@@ -2160,11 +2180,12 @@
       document.getElementById('profPangkat').textContent = profile.pangkat || '-';
       document.getElementById('profCorps').textContent = profile.corps || '-';
 
-      // Handle avatar foto/inisial
+      // Handle avatar foto/inisial — foto dibaca dari localStorage lokal
+      const photo = getProfilePhoto(activeUser);
       const photoEl = document.getElementById('profPhoto');
       const initialsEl = document.getElementById('profInitials');
-      if (profile.photo) {
-        photoEl.src = profile.photo;
+      if (photo) {
+        photoEl.src = photo;
         photoEl.style.display = 'block';
         initialsEl.style.display = 'none';
       } else {
@@ -2192,12 +2213,14 @@
       document.getElementById('editProfPassKonfirm').value = '';
       if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
 
-      // Populate photo preview
+      // Populate photo preview — foto dibaca dari localStorage lokal
+      const activeUser = sessionStorage.getItem('activeUsername');
+      const photo = getProfilePhoto(activeUser);
       const preview = document.getElementById('editProfPhotoPreview');
       const initialsEl = document.getElementById('editProfPhotoInitials');
       const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
-      if (profile.photo) {
-        preview.src = profile.photo;
+      if (photo) {
+        preview.src = photo;
         preview.style.display = 'block';
         initialsEl.style.display = 'none';
         removeBtn.style.display = 'inline-block';
@@ -2292,26 +2315,22 @@
         return;
       }
 
-      // Build updatedProfile including photo
+      // Build updatedProfile (without photo — stored separately)
       const preview = document.getElementById('editProfPhotoPreview');
-      const existingProfileStr = sessionStorage.getItem('activeProfile');
-      let existingProfile = {};
-      try { existingProfile = JSON.parse(existingProfileStr || '{}'); } catch(e) {}
+      const activeUsername = sessionStorage.getItem('activeUsername');
 
-      // Determine final photo: new upload, kept existing, or removed (no src)
-      let photo = existingProfile.photo || null;
+      // Save photo to localStorage per-user key
       if (preview && preview.style.display !== 'none' && preview.src && preview.src.startsWith('data:')) {
-        photo = preview.src; // new upload
-      } else if (!preview || preview.style.display === 'none') {
-        photo = null; // explicitly removed
+        setProfilePhoto(activeUsername, preview.src);
+      } else if (preview && preview.style.display === 'none') {
+        setProfilePhoto(activeUsername, null); // explicitly removed
       }
 
-      // Update profile in sessionStorage
-      const updatedProfile = { nama, nrp, pangkat, corps, photo };
+      // Update profile in sessionStorage (no photo field needed)
+      const updatedProfile = { nama, nrp, pangkat, corps };
       sessionStorage.setItem('activeProfile', JSON.stringify(updatedProfile));
 
       // Update in users database (localStorage / online)
-      const activeUsername = sessionStorage.getItem('activeUsername');
       const users = await fetchUsersOnline();
       const idx = users.findIndex(u => u.username.toLowerCase() === (activeUsername || '').toLowerCase());
       if (idx !== -1) {
@@ -3378,10 +3397,12 @@
         card.onmouseleave = () => { card.style.borderColor = 'var(--border-color)'; card.style.boxShadow = 'var(--shadow-sm)'; card.style.transform = 'none'; };
         card.onclick = () => openEditPersonnelModal(student.username);
 
+        // Foto dari localStorage lokal (bukan dari online sync)
+        const photo = getProfilePhoto(student.username);
         card.innerHTML = `
           <div style="width: 42px; height: 42px; min-width:42px; border-radius: 50%; overflow:hidden; flex-shrink:0; border: 2.5px solid var(--primary); box-shadow: 0 1px 4px rgba(30,58,138,0.15);">
-            ${p.photo
-              ? `<img src="${p.photo}" alt="foto" style="width:100%; height:100%; object-fit:cover;">`
+            ${photo
+              ? `<img src="${photo}" alt="foto" style="width:100%; height:100%; object-fit:cover;">`
               : `<div style="width:100%; height:100%; background: linear-gradient(135deg, var(--primary), #2563eb); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:0.95rem; font-family:'Outfit',sans-serif;">${initials}</div>`
             }
           </div>
