@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -759,12 +759,12 @@
       <div class="login-body">
         <!-- Error login/register alert -->
         <div class="error-alert" id="loginErrorBox" style="margin-bottom: 1rem;">
-          <strong>⚠️ Kesalahan:</strong> <span id="loginErrorMsg">Username atau Password salah.</span>
+          <strong>âš ï¸ Kesalahan:</strong> <span id="loginErrorMsg">Username atau Password salah.</span>
         </div>
         
         <!-- Success register alert -->
         <div class="error-alert" id="registerSuccessBox" style="margin-bottom: 1rem; background: var(--accent-light); border-color: var(--accent); color: var(--accent); display: none;">
-          <strong>✅ Sukses:</strong> <span id="registerSuccessMsg">Akun berhasil dibuat. Silakan login.</span>
+          <strong>âœ… Sukses:</strong> <span id="registerSuccessMsg">Akun berhasil dibuat. Silakan login.</span>
         </div>
 
         <!-- Login Form -->
@@ -782,7 +782,7 @@
           </div>
 
           <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;">
-            Masuk Sistem ➔
+            Masuk Sistem âž”
           </button>
           
           <div style="text-align: center; margin-top: 1rem;">
@@ -859,7 +859,7 @@
           </div>
 
           <button type="submit" class="btn btn-accent" style="width: 100%; justify-content: center; margin-top: 1rem;">
-            Buat Akun Baru ✓
+            Buat Akun Baru âœ“
           </button>
           
           <div style="text-align: center; margin-top: 1rem;">
@@ -875,11 +875,11 @@
       <!-- Nav Bar -->
       <div class="nav-bar">
         <div class="user-info-badge">
-          <span>👤 Login:</span> <span id="navUsername" style="color: var(--primary);">User</span>
+          <span>ðŸ‘¤ Login:</span> <span id="navUsername" style="color: var(--primary);">User</span>
           <span class="user-role" id="navRole">Role</span>
         </div>
         <button class="btn btn-secondary" onclick="handleLogout()" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
-          Logout ↺
+          Logout â†º
         </button>
       </div>
 
@@ -894,9 +894,9 @@
         <!-- Profile card -->
         <div class="dashboard-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--primary-light) 0%, #ffffff 100%); border-left: 5px solid var(--primary);">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
-            <h3 style="font-family: 'Outfit', sans-serif;">👤 Profil Aktif Personel</h3>
+            <h3 style="font-family: 'Outfit', sans-serif;">ðŸ‘¤ Profil Aktif Personel</h3>
             <button id="btnEditProfil" class="btn btn-secondary" onclick="openEditProfile()" style="font-size: 0.8rem; padding: 0.35rem 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
-              ✏️ Edit Profil
+              âœï¸ Edit Profil
             </button>
           </div>
           <div style="display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;">
@@ -920,9 +920,9 @@
           <div class="dashboard-card" style="border-top: 5px solid var(--primary); background: linear-gradient(135deg, var(--primary-light) 0%, #ffffff 100%); animation: slideDown 0.3s ease;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
               <h3 style="font-family: 'Outfit', sans-serif; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
-                ✏️ Edit Profil Personel
+                âœï¸ Edit Profil Personel
               </h3>
-              <button type="button" onclick="cancelEditProfile()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); line-height: 1;" title="Tutup">✕</button>
+              <button type="button" onclick="cancelEditProfile()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); line-height: 1;" title="Tutup">âœ•</button>
             </div>
 
             <form id="editProfileForm" onsubmit="saveProfile(event)">
@@ -934,7 +934,7 @@
                   <div id="editProfPhotoInitials" style="width:80px; height:80px; min-width:80px; border-radius:50%; background: linear-gradient(135deg, var(--primary), #2563eb); display:flex; align-items:center; justify-content:center; font-family:'Outfit',sans-serif; font-weight:700; font-size:1.7rem; color:#fff;">?</div>
                   <!-- Overlay kamera -->
                   <label for="editProfPhotoInput" style="position:absolute; bottom:0; right:0; width:26px; height:26px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; border:2px solid #fff; font-size:0.8rem; box-shadow:0 1px 4px rgba(0,0,0,0.2);" title="Ganti foto">
-                    📷
+                    ðŸ“·
                   </label>
                 </div>
                 <div style="flex:1;">
@@ -942,9 +942,9 @@
                   <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem;">Format: JPG/PNG, maks 2MB. Foto akan tampil di profil dan daftar admin.</p>
                   <input type="file" id="editProfPhotoInput" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleProfilePhotoChange(this)">
                   <label for="editProfPhotoInput" class="btn btn-secondary" style="font-size:0.78rem; padding:0.3rem 0.7rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.3rem;">
-                    📂 Pilih Foto
+                    ðŸ“‚ Pilih Foto
                   </label>
-                  <button type="button" id="editProfPhotoRemoveBtn" onclick="removeProfilePhoto()" style="display:none; margin-left:0.5rem; background:none; border:none; color:var(--error); font-size:0.78rem; cursor:pointer; font-weight:600;">✕ Hapus foto</button>
+                  <button type="button" id="editProfPhotoRemoveBtn" onclick="removeProfilePhoto()" style="display:none; margin-left:0.5rem; background:none; border:none; color:var(--error); font-size:0.78rem; cursor:pointer; font-weight:600;">âœ• Hapus foto</button>
                 </div>
               </div>
 
@@ -996,7 +996,7 @@
               </div>
 
               <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1rem 0;">
-              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 600;">🔒 Ubah Password (opsional — kosongkan jika tidak ingin diubah)</p>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 600;">ðŸ”’ Ubah Password (opsional â€” kosongkan jika tidak ingin diubah)</p>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                 <div class="form-group" style="margin-bottom: 0;">
                   <label for="editProfPassBaru">Password Baru</label>
@@ -1013,7 +1013,7 @@
 
               <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                 <button type="submit" class="btn btn-primary" style="font-size: 0.9rem;">
-                  💾 Simpan Perubahan
+                  ðŸ’¾ Simpan Perubahan
                 </button>
                 <button type="button" class="btn btn-secondary" onclick="cancelEditProfile()" style="font-size: 0.9rem;">
                   Batal
@@ -1026,14 +1026,14 @@
         <!-- Student Main Grid -->
         <div class="stats-grid" id="studentMenuGrid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 2rem;">
           <div class="stat-card" style="cursor: pointer; padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center; border-top: 5px solid var(--accent);" onclick="openStudentTab('absen')">
-            <span style="font-size: 3rem; margin-bottom: 1rem;">📅</span>
+            <span style="font-size: 3rem; margin-bottom: 1rem;">ðŸ“…</span>
             <h3 style="font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem; color: var(--accent);">Absensi Harian</h3>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Lakukan pengisian daftar hadir harian personel TNI aktif di sini.</p>
             <button class="btn btn-accent" style="width: 100%; font-size: 0.85rem;">Isi Absensi Harian</button>
           </div>
           
           <div class="stat-card" style="cursor: pointer; padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center; border-top: 5px solid var(--primary);" onclick="openStudentTab('ujian')">
-            <span style="font-size: 3rem; margin-bottom: 1rem;">✏️</span>
+            <span style="font-size: 3rem; margin-bottom: 1rem;">âœï¸</span>
             <h3 style="font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem; color: var(--primary);">Ujian Esai Militer</h3>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Uji pemahaman dan kemampuan militer Anda dengan mengerjakan ujian esai aktif.</p>
             <button class="btn btn-primary" style="width: 100%; font-size: 0.85rem;">Mulai Ujian Esai</button>
@@ -1042,13 +1042,13 @@
 
         <!-- Error Alert Box -->
         <div class="error-alert" id="errorBox" style="margin-bottom: 1.5rem;">
-          <strong>⚠️ Kesalahan:</strong> <span id="errorMsg">Harap isi bidang yang wajib diisi.</span>
+          <strong>âš ï¸ Kesalahan:</strong> <span id="errorMsg">Harap isi bidang yang wajib diisi.</span>
         </div>
 
         <!-- FORM ABSENSI (Separate panel) -->
         <div id="studentAbsenPanel" class="dashboard-card" style="display: none; border-top: 6px solid var(--accent);">
           <div class="section-title" style="color: var(--accent); margin-bottom: 1.5rem; font-size: 1.25rem;">
-            <span>📅</span> Form Absensi Harian Personel
+            <span>ðŸ“…</span> Form Absensi Harian Personel
           </div>
           
           <form id="studentAbsenForm" onsubmit="submitAttendance(event)">
@@ -1086,10 +1086,10 @@
 
             <div class="button-group">
               <button type="button" class="btn btn-secondary" onclick="backToStudentMenu()">
-                <span>⬅</span> Kembali ke Menu
+                <span>â¬…</span> Kembali ke Menu
               </button>
               <button type="submit" class="btn btn-accent">
-                Kirim Absensi ✓
+                Kirim Absensi âœ“
               </button>
             </div>
           </form>
@@ -1098,7 +1098,7 @@
         <!-- FORM UJIAN ESAI (Separate panel) -->
         <div id="studentUjianPanel" class="dashboard-card" style="display: none; border-top: 6px solid var(--primary);">
           <div class="section-title" style="color: var(--primary); margin-bottom: 1.5rem; font-size: 1.25rem;">
-            <span>✏️</span> Ujian Esai Militer Aktif
+            <span>âœï¸</span> Ujian Esai Militer Aktif
           </div>
           
           <form id="studentUjianForm" onsubmit="submitExam(event)">
@@ -1107,10 +1107,10 @@
 
             <div class="button-group">
               <button type="button" class="btn btn-secondary" onclick="backToStudentMenu()">
-                <span>⬅</span> Kembali ke Menu
+                <span>â¬…</span> Kembali ke Menu
               </button>
               <button type="submit" class="btn btn-primary">
-                Kirim Jawaban Ujian ✓
+                Kirim Jawaban Ujian âœ“
               </button>
             </div>
           </form>
@@ -1162,24 +1162,23 @@
         
         <!-- Admin Tab Navigation Menu -->
         <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);" id="adminTabNav">
-          <button class="btn btn-secondary admin-tab-btn active" onclick="switchAdminTab('ringkasan')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabRingkasan">📊 Ringkasan</button>
-          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('soal')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabSoal">📝 Kelola Soal Ujian</button>
-          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('personel')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabPersonel">👥 Database Personil</button>
-          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('absensi')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabAbsensi">📅 Rekap Absensi</button>
-          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('hasil')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabHasil">🏆 Hasil Ujian</button>
-          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('sync')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabSync">⚙️ Pengaturan Sync</button>
-          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('tampilan')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabTampilan">🎨 Pengaturan Tampilan</button>
+          <button class="btn btn-secondary admin-tab-btn active" onclick="switchAdminTab('ringkasan')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabRingkasan">ðŸ“Š Data Personil</button>
+          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('soal')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabSoal">ðŸ“ Kelola Soal Ujian</button>
+          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('absensi')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabAbsensi">ðŸ“… Rekap Absensi</button>
+          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('hasil')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabHasil">ðŸ† Hasil Ujian</button>
+          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('sync')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabSync">âš™ï¸ Pengaturan Sync</button>
+          <button class="btn btn-secondary admin-tab-btn" onclick="switchAdminTab('tampilan')" style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-weight: 600; cursor: pointer; transition: all 0.2s;" id="btnTabTampilan">ðŸŽ¨ Pengaturan Tampilan</button>
         </div>
 
         <!-- 1. Ringkasan Tab -->
         <div id="adminTab_ringkasan" style="display: block;">
           <div class="stats-grid">
           <div class="stat-card" style="border-top: 4px solid var(--primary);">
-            <div class="stat-label">👥 Personil Terdaftar</div>
+            <div class="stat-label">ðŸ‘¥ Personil Terdaftar</div>
             <div class="stat-value" id="statPersonnel">0</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">📝 Total Pengerjaan Ujian</div>
+            <div class="stat-label">ðŸ“ Total Pengerjaan Ujian</div>
             <div class="stat-value" id="statTotal">0</div>
           </div>
           <div class="stat-card accent-border">
@@ -1200,7 +1199,7 @@
           <div class="dashboard-card" style="margin-top: 1.5rem; border-left: 5px solid var(--primary);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
               <h3 style="font-family: 'Outfit', sans-serif; display: flex; align-items: center; gap: 0.5rem;">
-                  <input type="text" id="ringkasanSearchPersonnel" placeholder="🔍 Cari nama / username / NRP..." oninput="filterRingkasanPersonnel(this.value)" style="padding: 0.4rem 0.75rem; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.85rem; width: 240px;">
+                  <input type="text" id="ringkasanSearchPersonnel" placeholder="ðŸ” Cari nama / username / NRP..." oninput="filterRingkasanPersonnel(this.value)" style="padding: 0.4rem 0.75rem; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.85rem; width: 240px;">
             </div>
             <div id="ringkasanPersonnelList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem;">
               <!-- Rendered dynamically -->
@@ -1214,10 +1213,10 @@
             <!-- Modal Header -->
             <div style="padding: 1.5rem 1.5rem 1rem; border-bottom: 1px solid var(--border-color); background: linear-gradient(135deg, var(--primary-light), #fff); border-radius: var(--radius-lg) var(--radius-lg) 0 0; display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <h3 style="font-family: 'Outfit', sans-serif; color: var(--primary); margin: 0;">✏️ Edit Akun Personel</h3>
+                <h3 style="font-family: 'Outfit', sans-serif; color: var(--primary); margin: 0;">âœï¸ Edit Akun Personel</h3>
                 <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.25rem 0 0;">Ubah data dan akses akun personel ini</p>
               </div>
-              <button onclick="closeEditPersonnelModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); line-height: 1; padding: 0.25rem;">✕</button>
+              <button onclick="closeEditPersonnelModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); line-height: 1; padding: 0.25rem;">âœ•</button>
             </div>
 
             <!-- Modal Body -->
@@ -1226,7 +1225,7 @@
                 <input type="hidden" id="modalPersOldUsername">
 
                 <!-- Identitas -->
-                <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem;">📋 Identitas Personel</p>
+                <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem;">ðŸ“‹ Identitas Personel</p>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
                   <div class="form-group" style="margin-bottom: 0;">
@@ -1276,7 +1275,7 @@
                 </div>
 
                 <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1rem 0;">
-                <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem;">🔐 Akun & Keamanan</p>
+                <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem;">ðŸ” Akun & Keamanan</p>
 
                 <div class="form-group">
                   <label for="modalPersUsername">Username <span class="required">*</span></label>
@@ -1284,7 +1283,7 @@
                 </div>
 
                 <div style="background: #f8fafc; border: 1.5px dashed var(--border-color); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 0.75rem;">
-                  <p style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.6rem;">🔑 Reset Password (kosongkan jika tidak ingin diubah)</p>
+                  <p style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.6rem;">ðŸ”‘ Reset Password (kosongkan jika tidak ingin diubah)</p>
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                     <div class="form-group" style="margin-bottom: 0;">
                       <label for="modalPersPassBaru">Password Baru</label>
@@ -1302,9 +1301,9 @@
 
                 <!-- Actions -->
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
-                  <button type="button" class="btn btn-danger" onclick="deletePersonnelFromModal()" style="font-size: 0.85rem; margin-right: auto;">🗑 Hapus Akun</button>
+                  <button type="button" class="btn btn-danger" onclick="deletePersonnelFromModal()" style="font-size: 0.85rem; margin-right: auto;">ðŸ—‘ Hapus Akun</button>
                   <button type="button" class="btn btn-secondary" onclick="closeEditPersonnelModal()" style="font-size: 0.85rem;">Batal</button>
-                  <button type="submit" class="btn btn-primary" style="font-size: 0.85rem;">💾 Simpan Perubahan</button>
+                  <button type="submit" class="btn btn-primary" style="font-size: 0.85rem;">ðŸ’¾ Simpan Perubahan</button>
                 </div>
               </form>
             </div>
@@ -1316,7 +1315,7 @@
           <!-- Google Sheets Sync Configuration -->
           <div class="dashboard-card" style="border-left: 5px solid var(--accent); background: linear-gradient(to right, var(--accent-light), #ffffff);">
           <h3 style="display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif;">
-            📊 Sinkronisasi Database Google Sheets
+            ðŸ“Š Sinkronisasi Database Google Sheets
           </h3>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem; margin-bottom: 1rem;">
             Hubungkan website ini ke Google Spreadsheet Anda agar data absen, personel, dan nilai sinkron secara otomatis antar perangkat.
@@ -1340,7 +1339,7 @@
           <!-- Exam Schedule Block -->
           <div class="dashboard-card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent);">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-              <h4 style="margin-bottom: 0;">⏳ Pengaturan Waktu Akses Ujian</h4>
+              <h4 style="margin-bottom: 0;">â³ Pengaturan Waktu Akses Ujian</h4>
               <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; cursor: pointer; font-weight: 600; color: var(--error);">
                 <input type="checkbox" id="examOverride" onchange="saveExamSchedule()" style="width: auto;"> Buka Paksa Akses (Abaikan Waktu)
               </label>
@@ -1364,13 +1363,13 @@
           <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
             <input type="file" id="importQuestionsFile" accept=".csv, .txt" onchange="importQuestions(this)" style="display: none;">
             <button type="button" class="btn btn-secondary" onclick="document.getElementById('importQuestionsFile').click()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📥 Import Soal (.csv / .txt)
+              ðŸ“¥ Import Soal (.csv / .txt)
             </button>
             <button type="button" class="btn btn-secondary" onclick="exportQuestionsToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📝 Export ke Word (.doc)
+              ðŸ“ Export ke Word (.doc)
             </button>
             <button type="button" class="btn btn-secondary" onclick="exportQuestionsToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📊 Export ke Excel (.xls)
+              ðŸ“Š Export ke Excel (.xls)
             </button>
           </div>
           <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; margin-top: -0.75rem;">
@@ -1417,125 +1416,6 @@
         </div>
         </div> <!-- End adminTab_soal -->
 
-        <!-- 4. Database Personel Tab -->
-        <div id="adminTab_personel" style="display: none;">
-          <!-- Management Personnel Database Block -->
-          <div class="dashboard-card">
-          <h3>Manajemen Database Personil</h3>
-          
-          <!-- Add / Edit Personel Form -->
-          <form id="personnelForm" onsubmit="savePersonnel(event)" style="background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
-            <input type="hidden" id="editPersId" value="">
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersUsername">Username <span class="required">*</span></label>
-                <input type="text" id="editPersUsername" placeholder="Username untuk login" required>
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersPassword">Kata Sandi / Password <span class="required">*</span></label>
-                <input type="text" id="editPersPassword" placeholder="Kata sandi akun" required>
-              </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersNama">Nama Lengkap <span class="required">*</span></label>
-                <input type="text" id="editPersNama" placeholder="Nama lengkap personel" required>
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersNrp">NRP <span class="required">*</span></label>
-                <input type="text" id="editPersNrp" placeholder="Nomor NRP" required>
-              </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersPangkat">Pangkat <span class="required">*</span></label>
-                <select id="editPersPangkat" required>
-                  <option value="" disabled selected>Pilih Pangkat</option>
-                  <option value="Letda">Letda (Letnan Dua)</option>
-                  <option value="Lettu">Lettu (Letnan Satu)</option>
-                  <option value="Kapten">Kapten</option>
-                  <option value="Mayor">Mayor</option>
-                  <option value="Letkol">Letkol (Letnan Kolonel)</option>
-                  <option value="Kolonel">Kolonel</option>
-                </select>
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="editPersCorps">Corps <span class="required">*</span></label>
-                <select id="editPersCorps" required>
-                  <option value="" disabled selected>Pilih Corps</option>
-                  <option value="Infanteri (Inf)">Infanteri (Inf)</option>
-                  <option value="Armed (Arm)">Armed (Arm)</option>
-                  <option value="Arhanud (Arh)">Arhanud (Arh)</option>
-                  <option value="Kavaleri (Kav)">Kavaleri (Kav)</option>
-                  <option value="Zeni (Czi)">Zeni (Czi)</option>
-                  <option value="Penerbangan (Cpn)">Penerbangan (Cpn)</option>
-                  <option value="Komunikasi dan Elektronika (Cke)">Komunikasi dan Elektronika (Cke)</option>
-                  <option value="Peralatan (Cpl)">Peralatan (Cpl)</option>
-                  <option value="Pembekalan Angkutan (Cba)">Pembekalan Angkutan (Cba)</option>
-                  <option value="Kesehatan Militer (Ckm)">Kesehatan Militer (Ckm)</option>
-                  <option value="Polisi Militer (Cpm)">Polisi Militer (Cpm)</option>
-                  <option value="Ajudan Jenderal (Caj)">Ajudan Jenderal (Caj)</option>
-                  <option value="Topografi (Ctp)">Topografi (Ctp)</option>
-                  <option value="Keuangan (Cku)">Keuangan (Cku)</option>
-                  <option value="Hukum (Chk)">Hukum (Chk)</option>
-                </select>
-              </div>
-            </div>
-
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-              <button type="submit" class="btn btn-accent" id="submitPersBtn">
-                <span id="submitPersBtnText">Tambah Personel Baru</span>
-              </button>
-              <button type="button" class="btn btn-secondary" id="btnCancelEditPers" onclick="cancelEditPersonnel()" style="display: none;">
-                Batal
-              </button>
-            </div>
-          </form>
-
-          <!-- List of Personnel -->
-          <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-family: 'Outfit', sans-serif;">Daftar Akun Personel Terdaftar:</h4>
-          
-          <!-- Import/Export buttons -->
-          <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
-            <input type="file" id="importPersonnelFile" accept=".csv, .txt" onchange="importPersonnel(this)" style="display: none;">
-            <button type="button" class="btn btn-secondary" onclick="document.getElementById('importPersonnelFile').click()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📥 Import Personel (.csv / .txt)
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="exportPersonnelToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📝 Export ke Word (.doc)
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="exportPersonnelToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📊 Export ke Excel (.xls)
-            </button>
-          </div>
-          <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; margin-top: -0.75rem;">
-            * Format berkas import (.txt/.csv): <code>username | password | nama | nrp | pangkat | corps</code> (Satu akun per baris).
-          </p>
-
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Username</th>
-                  <th>Kata Sandi</th>
-                  <th>Nama Lengkap</th>
-                  <th>NRP</th>
-                  <th>Pangkat</th>
-                  <th>Corps</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="adminPersonnelTableBody">
-                <!-- Personnel rows rendered dynamically -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-        </div> <!-- End adminTab_personel -->
-
         <!-- 5. Rekap Absensi Tab -->
         <div id="adminTab_absensi" style="display: none;">
           <!-- Attendance Table Card -->
@@ -1544,10 +1424,10 @@
             <h3>Rekapitulasi Absensi Harian Personel</h3>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
               <button class="btn btn-secondary" onclick="exportAttendanceToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-                📊 Export Absen ke Excel
+                ðŸ“Š Export Absen ke Excel
               </button>
               <button class="btn btn-danger" onclick="clearAllAttendance()" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
-                ⚠️ Hapus Semua Absen
+                âš ï¸ Hapus Semua Absen
               </button>
             </div>
           </div>
@@ -1581,13 +1461,13 @@
             <h3>Rekapitulasi Hasil Ujian Personel</h3>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
               <button class="btn btn-secondary" onclick="exportResultsToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-                📝 Export Hasil ke Word
+                ðŸ“ Export Hasil ke Word
               </button>
               <button class="btn btn-secondary" onclick="exportResultsToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-                📊 Export Hasil ke Excel
+                ðŸ“Š Export Hasil ke Excel
               </button>
               <button class="btn btn-danger" onclick="clearAllSubmissions()" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
-                ⚠️ Hapus Semua Data
+                âš ï¸ Hapus Semua Data
               </button>
             </div>
           </div>
@@ -1616,7 +1496,7 @@
         <!-- 7. Pengaturan Tampilan Tab -->
         <div id="adminTab_tampilan" style="display: none;">
           <div class="dashboard-card" style="border-top: 5px solid var(--accent);">
-            <h3>🎨 Pengaturan Tampilan UI</h3>
+            <h3>ðŸŽ¨ Pengaturan Tampilan UI</h3>
             <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Ubah teks judul dan warna tema aplikasi (Berpengaruh pada halaman Siswa dan Login secara global).</p>
             
             <div class="form-group">
@@ -1698,9 +1578,9 @@
       const toast = document.createElement('div');
       toast.className = `toast-msg toast-${type}`;
       
-      let icon = 'ℹ️';
-      if(type === 'success') icon = '✅';
-      else if(type === 'error') icon = '⚠️';
+      let icon = 'â„¹ï¸';
+      if(type === 'success') icon = 'âœ…';
+      else if(type === 'error') icon = 'âš ï¸';
       
       toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
       container.appendChild(toast);
@@ -1839,7 +1719,7 @@
       }
     }
 
-    // Kompres gambar ke thumbnail kecil (max 150px, JPEG quality 0.6) → base64 ~5-10KB
+    // Kompres gambar ke thumbnail kecil (max 150px, JPEG quality 0.6) â†’ base64 ~5-10KB
     function compressImage(file, maxSize, quality) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -2138,26 +2018,26 @@
       const statusMsg = document.getElementById('sheetsStatusMessage');
       
       if (!url) {
-        statusMsg.textContent = "❌ Harap masukkan URL Web App yang valid.";
+        statusMsg.textContent = "âŒ Harap masukkan URL Web App yang valid.";
         statusMsg.style.color = "var(--error)";
         return;
       }
       
       if (!url.startsWith("https://script.google.com/")) {
-        statusMsg.textContent = "❌ URL harus berawalan dari Google Script (https://script.google.com/)";
+        statusMsg.textContent = "âŒ URL harus berawalan dari Google Script (https://script.google.com/)";
         statusMsg.style.color = "var(--error)";
         return;
       }
       
       localStorage.setItem('google_sheets_api_url', url);
-      statusMsg.textContent = "⏳ Mencoba menghubungkan ke Google Sheets...";
+      statusMsg.textContent = "â³ Mencoba menghubungkan ke Google Sheets...";
       statusMsg.style.color = "var(--text-muted)";
       
       // Test the URL connection by fetching users
       fetch(url + "?action=getUsers")
         .then(res => {
           if (res.ok) {
-            statusMsg.textContent = "✅ Sukses terhubung ke Google Sheets! Sinkronisasi aktif.";
+            statusMsg.textContent = "âœ… Sukses terhubung ke Google Sheets! Sinkronisasi aktif.";
             statusMsg.style.color = "var(--success)";
             document.getElementById('disconnectSheetsBtn').style.display = 'inline-block';
             // Sync all database data immediately
@@ -2169,7 +2049,7 @@
           }
         })
         .catch(err => {
-          statusMsg.textContent = "⚠️ Gagal terhubung. Pastikan Web App Anda di-deploy dengan akses 'Anyone'.";
+          statusMsg.textContent = "âš ï¸ Gagal terhubung. Pastikan Web App Anda di-deploy dengan akses 'Anyone'.";
           statusMsg.style.color = "var(--error)";
         });
     }
@@ -2179,7 +2059,7 @@
       document.getElementById('googleSheetsApiUrl').value = "";
       document.getElementById('disconnectSheetsBtn').style.display = 'none';
       const statusMsg = document.getElementById('sheetsStatusMessage');
-      statusMsg.textContent = "🔌 Sinkronisasi dinonaktifkan. Menggunakan penyimpanan lokal browser (LocalStorage).";
+      statusMsg.textContent = "ðŸ”Œ Sinkronisasi dinonaktifkan. Menggunakan penyimpanan lokal browser (LocalStorage).";
       statusMsg.style.color = "var(--text-muted)";
       setTimeout(() => {
         location.reload();
@@ -2195,7 +2075,7 @@
       if (url && inputEl && disBtn && statusMsg) {
         inputEl.value = url;
         disBtn.style.display = 'inline-block';
-        statusMsg.textContent = "✅ Terhubung ke Google Sheets (Sinkronisasi Aktif)";
+        statusMsg.textContent = "âœ… Terhubung ke Google Sheets (Sinkronisasi Aktif)";
         statusMsg.style.color = "var(--success)";
       }
     }
@@ -2531,7 +2411,7 @@
         return;
       }
       try {
-        // Kompres ke thumbnail 150x150 JPEG quality 0.6 (∼5-10KB)
+        // Kompres ke thumbnail 150x150 JPEG quality 0.6 (âˆ¼5-10KB)
         const compressed = await compressImage(file, 150, 0.6);
         const preview = document.getElementById('editProfPhotoPreview');
         const initialsEl = document.getElementById('editProfPhotoInitials');
@@ -2578,7 +2458,7 @@
       const passKonfirm = document.getElementById('editProfPassKonfirm').value;
 
       if (!nama) {
-        msgEl.textContent = '❌ Nama lengkap tidak boleh kosong.';
+        msgEl.textContent = 'âŒ Nama lengkap tidak boleh kosong.';
         msgEl.style.color = 'var(--error)';
         msgEl.style.background = '#fef2f2';
         msgEl.style.display = 'block';
@@ -2586,7 +2466,7 @@
       }
 
       if (passBaru && passBaru.length < 4) {
-        msgEl.textContent = '❌ Password baru minimal 4 karakter.';
+        msgEl.textContent = 'âŒ Password baru minimal 4 karakter.';
         msgEl.style.color = 'var(--error)';
         msgEl.style.background = '#fef2f2';
         msgEl.style.display = 'block';
@@ -2594,7 +2474,7 @@
       }
 
       if (passBaru && passBaru !== passKonfirm) {
-        msgEl.textContent = '❌ Konfirmasi password tidak cocok.';
+        msgEl.textContent = 'âŒ Konfirmasi password tidak cocok.';
         msgEl.style.color = 'var(--error)';
         msgEl.style.background = '#fef2f2';
         msgEl.style.display = 'block';
@@ -2635,7 +2515,7 @@
       // Refresh tampilan kartu profil
       loadStudentProfile();
 
-      msgEl.textContent = '✅ Profil berhasil diperbarui!';
+      msgEl.textContent = 'âœ… Profil berhasil diperbarui!';
       msgEl.style.color = 'var(--success)';
       msgEl.style.background = '#f0fdf4';
       msgEl.style.display = 'block';
@@ -2770,7 +2650,7 @@
         let fileLinkHtml = '';
         if (q.fileData) {
           fileLinkHtml = `<div style="margin-top: 0.5rem; margin-bottom: 1rem; font-size: 0.85rem; background: var(--primary-light); padding: 0.5rem; border-radius: var(--radius-sm); border: 1px dashed var(--primary);">
-            📄 <a href="${q.fileData}" download="${q.fileName}" style="color:var(--primary); font-weight:700; text-decoration:underline;">Unduh Dokumen Soal (${q.fileName})</a>
+            ðŸ“„ <a href="${q.fileData}" download="${q.fileName}" style="color:var(--primary); font-weight:700; text-decoration:underline;">Unduh Dokumen Soal (${q.fileName})</a>
             <span class="text-muted" style="font-size:0.75rem; display:block; margin-top: 2px;">Diunggah oleh Admin pada: ${q.fileUploadTime}</span>
           </div>`;
         }
@@ -2947,7 +2827,7 @@
         existing.push(newSubmission);
         await saveSubmissionsOnline(existing);
 
-        alert('✅ Berhasil! Jawaban ujian dan dokumen Anda telah sukses terkirim ke Operator.');
+        alert('âœ… Berhasil! Jawaban ujian dan dokumen Anda telah sukses terkirim ke Operator.');
 
         // Display student result card
         document.getElementById('finalScore').textContent = score;
@@ -2993,7 +2873,7 @@
         let fileLinkHtml = '';
         if (q.fileData) {
           fileLinkHtml = `<div style="font-size: 0.8rem; margin-top: 0.35rem;">
-            📄 Dokumen: <a href="${q.fileData}" download="${q.fileName}" style="color:var(--accent); font-weight:700; text-decoration:underline;">${q.fileName}</a>
+            ðŸ“„ Dokumen: <a href="${q.fileData}" download="${q.fileName}" style="color:var(--accent); font-weight:700; text-decoration:underline;">${q.fileName}</a>
             <span class="text-muted" style="font-size: 0.75rem;">(Diunggah: ${q.fileUploadTime})</span>
           </div>`;
         }
@@ -3262,7 +3142,7 @@
         if (sub.answerFiles && sub.answerFiles[qId]) {
           const fileObj = sub.answerFiles[qId];
           fileLink = `<div style="font-size:0.8rem; margin-top:0.5rem; background: var(--primary-light); padding: 0.4rem; border-radius: 4px; display: block; width: fit-content;">
-            📄 File Jawaban: <a href="${fileObj.fileData}" download="${fileObj.fileName}" style="color:var(--primary); font-weight:700; text-decoration:underline;">${fileObj.fileName}</a>
+            ðŸ“„ File Jawaban: <a href="${fileObj.fileData}" download="${fileObj.fileName}" style="color:var(--primary); font-weight:700; text-decoration:underline;">${fileObj.fileName}</a>
             <span style="font-size:0.7rem; color:var(--text-muted); margin-left: 5px;">(Diunggah: ${fileObj.fileTime})</span>
           </div>`;
         }
@@ -3273,7 +3153,7 @@
             <div style="font-size: 0.85rem; margin-top: 0.25rem;">
               Jawaban Personel: <span style="display:block; padding: 0.25rem; font-style: italic; background:#ffffff; border:1px solid var(--border-color); margin-top:0.25rem;">"${ans}"</span>
               ${fileLink}
-              <span style="font-size:0.75rem; display:block; margin-top:0.25rem;">Pencocokan Kata Kunci: ${isCorrect ? '🟢 Cocok' : '🔴 Tidak Cocok'} ${keywords.length > 0 ? `(Target: ${keywords.join('/')})` : ''}</span>
+              <span style="font-size:0.75rem; display:block; margin-top:0.25rem;">Pencocokan Kata Kunci: ${isCorrect ? 'ðŸŸ¢ Cocok' : 'ðŸ”´ Tidak Cocok'} ${keywords.length > 0 ? `(Target: ${keywords.join('/')})` : ''}</span>
             </div>
           </div>
         `;
@@ -3570,7 +3450,7 @@
     async function renderAdminPersonnel() {
       const tbody = document.getElementById('adminPersonnelTableBody');
       if (!tbody) return;
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.5rem;">⏳ Memuat data personil...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.5rem;">â³ Memuat data personil...</td></tr>`;
 
       const users = await fetchUsersOnline();
       const students = users.filter(u => u.role === 'siswa');
@@ -3681,7 +3561,7 @@
     async function renderRingkasanPersonnel() {
       const container = document.getElementById('ringkasanPersonnelList');
       if (!container) return;
-      container.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:1rem;">⏳ Memuat...</div>`;
+      container.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:1rem;">â³ Memuat...</div>`;
 
       const users = await fetchUsersOnline();
       const students = users.filter(u => u.role === 'siswa');
@@ -3724,10 +3604,10 @@
           </div>
           <div style="flex:1; min-width:0;">
             <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.nama || '(nama belum diisi)'}</div>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top:1px;">@${student.username} ${p.nrp ? '· ' + p.nrp : ''}</div>
-            <div style="font-size: 0.75rem; color: var(--accent); margin-top:2px; font-weight:600;">${p.pangkat || ''} ${p.corps ? '· ' + p.corps : ''}</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top:1px;">@${student.username} ${p.nrp ? 'Â· ' + p.nrp : ''}</div>
+            <div style="font-size: 0.75rem; color: var(--accent); margin-top:2px; font-weight:600;">${p.pangkat || ''} ${p.corps ? 'Â· ' + p.corps : ''}</div>
           </div>
-          <span style="font-size:1rem; color:var(--text-muted);">›</span>
+          <span style="font-size:1rem; color:var(--text-muted);">â€º</span>
         `;
         container.appendChild(card);
       });
@@ -3799,13 +3679,13 @@
       const passKonfirm = document.getElementById('modalPersPassKonfirm').value;
 
       if (!nama) {
-        msgEl.textContent = '❌ Nama tidak boleh kosong.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+        msgEl.textContent = 'âŒ Nama tidak boleh kosong.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
       }
       if (passBaru && passBaru.length < 4) {
-        msgEl.textContent = '❌ Password baru minimal 4 karakter.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+        msgEl.textContent = 'âŒ Password baru minimal 4 karakter.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
       }
       if (passBaru && passBaru !== passKonfirm) {
-        msgEl.textContent = '❌ Konfirmasi password tidak cocok.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+        msgEl.textContent = 'âŒ Konfirmasi password tidak cocok.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
       }
 
       let users = await fetchUsersOnline();
@@ -3814,7 +3694,7 @@
       if (newUsername !== oldUsername) {
         const taken = users.some(u => u.username.toLowerCase() === newUsername.toLowerCase());
         if (taken || newUsername.toLowerCase() === 'siswa' || newUsername.toLowerCase() === 'admin') {
-          msgEl.textContent = '❌ Username sudah digunakan akun lain.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+          msgEl.textContent = 'âŒ Username sudah digunakan akun lain.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
         }
       }
 
@@ -3827,7 +3707,7 @@
 
       await saveUsersOnline(users);
 
-      msgEl.textContent = '✅ Data personel berhasil diperbarui!'; msgEl.style.color='var(--success)'; msgEl.style.background='#f0fdf4'; msgEl.style.display='block';
+      msgEl.textContent = 'âœ… Data personel berhasil diperbarui!'; msgEl.style.color='var(--success)'; msgEl.style.background='#f0fdf4'; msgEl.style.display='block';
 
       // Refresh both lists
       await renderRingkasanPersonnel();
