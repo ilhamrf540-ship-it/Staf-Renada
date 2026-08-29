@@ -1,0 +1,458 @@
+async function handleLogin(event) {
+      event.preventDefault();
+      const userVal = document.getElementById('username').value.trim();
+      const passVal = document.getElementById('password').value;
+      const errorBox = document.getElementById('loginErrorBox');
+      const successBox = document.getElementById('registerSuccessBox');
+
+      errorBox.style.display = 'none';
+      successBox.style.display = 'none';
+
+      // 1. Check custom database online
+      const users = await fetchUsersOnline();
+      const customUser = users.find(u => u.username.toLowerCase() === userVal.toLowerCase() && u.password === passVal);
+
+      if (customUser) {
+        if (customUser.role === currentLoginTab) {
+          const roleLabel = customUser.role === 'admin' ? 'Operator / Admin' : 'Personel / Siswa';
+          loginSuccess(customUser.role, roleLabel, customUser.username, customUser.profile);
+          return;
+        } else {
+          errorBox.querySelector('span').textContent = `Akun terdaftar sebagai ${customUser.role === 'admin' ? 'Operator' : 'Personel'}. Harap ganti tab login di atas.`;
+          errorBox.style.display = 'flex';
+          return;
+        }
+      }
+
+      // 2. Check defaults
+      if (currentLoginTab === 'siswa') {
+        if (userVal === 'siswa' && passVal === 'siswa123') {
+          // default student fallback profile
+          const defaultProfile = { nama: 'Siswa Cadangan', nrp: '000000', pangkat: 'Letda', corps: 'Infanteri (Inf)' };
+          loginSuccess('siswa', 'Personel / Siswa', 'siswa', defaultProfile);
+        } else {
+          errorBox.querySelector('span').textContent = 'Username atau Password salah.';
+          errorBox.style.display = 'flex';
+        }
+      } else if (currentLoginTab === 'admin') {
+        if (userVal === 'admin' && passVal === 'admin123') {
+          loginSuccess('admin', 'Operator / Admin', 'admin', {});
+        } else {
+          errorBox.querySelector('span').textContent = 'Username atau Password salah.';
+          errorBox.style.display = 'flex';
+        }
+      }
+    }
+
+    function loginSuccess(role, roleLabel, username, profile) {
+      currentRole = role;
+      sessionStorage.setItem('activeRole', role);
+      sessionStorage.setItem('activeUsername', username);
+      if (profile && Object.keys(profile).length > 0) {
+        sessionStorage.setItem('activeProfile', JSON.stringify(profile));
+      }
+      
+      document.getElementById('loginPortal').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      
+      document.getElementById('navUsername').textContent = username;
+      document.getElementById('navRole').textContent = roleLabel;
+      
+      showPanelForRole(role);
+    }
+
+    async function showPanelForRole(role) {
+      const studentPortal = document.getElementById('studentPortal');
+      const adminPortal = document.getElementById('adminPortal');
+
+      if (role === 'siswa') {
+        studentPortal.style.display = 'block';
+        adminPortal.style.display = 'none';
+        
+        loadStudentProfile();
+        backToStudentMenu();
+      } else {
+        studentPortal.style.display = 'none';
+        adminPortal.style.display = 'block';
+        
+        startAdminPolling();
+        await switchAdminTab('ringkasan');
+      }
+    }
+
+    async function switchAdminTab(tabName) {
+      const tabs = ['ringkasan', 'soal', 'personel', 'absensi', 'hasil', 'sync', 'tampilan'];
+      tabs.forEach(t => {
+        const el = document.getElementById('adminTab_' + t);
+        if (el) el.style.display = 'none';
+      });
+
+      const selectedEl = document.getElementById('adminTab_' + tabName);
+      if (selectedEl) selectedEl.style.display = 'block';
+
+      const buttons = document.querySelectorAll('.admin-tab-btn');
+      buttons.forEach(btn => {
+        btn.style.background = '#f1f5f9';
+        btn.style.color = 'var(--text-main)';
+        btn.style.borderColor = 'var(--border-color)';
+      });
+
+      const activeBtn = document.getElementById('btnTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+      if (activeBtn) {
+        activeBtn.style.background = 'var(--primary)';
+        activeBtn.style.color = '#ffffff';
+        activeBtn.style.borderColor = 'var(--primary)';
+      }
+
+      // Refresh data setiap kali tab dibuka (agar selalu sinkron)
+      try {
+        if (tabName === 'personel') {
+          await renderAdminPersonnel();
+        } else if (tabName === 'ringkasan' || tabName === 'hasil') {
+          await loadAdminDashboard();
+        } else if (tabName === 'absensi') {
+          await loadAdminAttendance();
+        } else if (tabName === 'soal') {
+          await fetchQuestionsOnline();
+          renderAdminQuestions();
+        }
+      } catch(e) { console.error('Tab refresh error:', e); }
+    }
+
+    async function loadStudentProfile() {
+      const activeUser = sessionStorage.getItem('activeUsername');
+      const savedProfileStr = sessionStorage.getItem('activeProfile');
+      let profile = {};
+      if (savedProfileStr) {
+        try { profile = JSON.parse(savedProfileStr); } catch(e) {}
+      }
+      
+      try {
+        const attendances = await fetchAttendanceOnline();
+        const todayStr = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Jakarta" }).substring(0, 10);
+        const hasAbsented = attendances.find(a => a.username === activeUser && String(a.timestamp).substring(0, 10) === todayStr);
+        const btnAbsen = document.querySelector('#studentMenuGrid .stat-card:first-child .btn');
+        const cardAbsen = document.querySelector('#studentMenuGrid .stat-card:first-child');
+        
+        if (hasAbsented && btnAbsen && cardAbsen) {
+          btnAbsen.textContent = 'ANDA SUDAH ABSEN';
+          btnAbsen.style.backgroundColor = '#94a3b8';
+          cardAbsen.onclick = (e) => {
+             e.preventDefault();
+             e.stopPropagation();
+             alert(`Anda telah melakukan absensi pada ${new Date(hasAbsented.timestamp).toLocaleString('id-ID')} WIB.`);
+          };
+        }
+      } catch (e) { console.error('Gagal mengecek absensi:', e); }
+      
+      document.getElementById('profNama').textContent = profile.nama || activeUser || '-';
+      document.getElementById('profNrp').textContent = profile.nrp || '-';
+      document.getElementById('profPangkat').textContent = profile.pangkat || '-';
+      document.getElementById('profCorps').textContent = profile.corps || '-';
+
+      // Handle avatar foto/inisial
+      const photo = profile.photo || null;
+      const photoEl = document.getElementById('profPhoto');
+      const initialsEl = document.getElementById('profInitials');
+      if (photo) {
+        photoEl.src = photo;
+        photoEl.style.display = 'block';
+        initialsEl.style.display = 'none';
+      } else {
+        photoEl.style.display = 'none';
+        initialsEl.style.display = 'flex';
+        const name = profile.nama || activeUser || '?';
+        initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+      }
+    }
+
+    function openEditProfile() {
+      const panel = document.getElementById('editProfilePanel');
+      const msgEl = document.getElementById('editProfileMsg');
+
+      // Populate current values
+      const savedProfileStr = sessionStorage.getItem('activeProfile');
+      let profile = {};
+      try { profile = JSON.parse(savedProfileStr || '{}'); } catch(e) {}
+
+      document.getElementById('editProfNama').value = profile.nama || '';
+      document.getElementById('editProfNrp').value = profile.nrp || '';
+      document.getElementById('editProfPangkat').value = profile.pangkat || '';
+      document.getElementById('editProfCorps').value = profile.corps || '';
+      document.getElementById('editProfPassBaru').value = '';
+      document.getElementById('editProfPassKonfirm').value = '';
+      if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
+
+      // Populate photo preview dari profile.photo
+      const photo = profile.photo || null;
+      const preview = document.getElementById('editProfPhotoPreview');
+      const initialsEl = document.getElementById('editProfPhotoInitials');
+      const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
+      if (photo) {
+        preview.src = photo;
+        preview.style.display = 'block';
+        initialsEl.style.display = 'none';
+        removeBtn.style.display = 'inline-block';
+      } else {
+        preview.style.display = 'none';
+        initialsEl.style.display = 'flex';
+        const name = profile.nama || '';
+        initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+        removeBtn.style.display = 'none';
+      }
+      document.getElementById('editProfPhotoInput').value = '';
+
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function handleProfilePhotoChange(input) {
+      const file = input.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Ukuran foto maksimal 5MB.');
+        input.value = '';
+        return;
+      }
+      try {
+        // Kompres ke thumbnail 150x150 JPEG quality 0.6 (∼5-10KB)
+        const compressed = await compressImage(file, 150, 0.6);
+        const preview = document.getElementById('editProfPhotoPreview');
+        const initialsEl = document.getElementById('editProfPhotoInitials');
+        const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
+        preview.src = compressed;
+        preview.style.display = 'block';
+        initialsEl.style.display = 'none';
+        removeBtn.style.display = 'inline-block';
+      } catch(e) {
+        alert('Gagal memproses foto. Coba foto lain.');
+        input.value = '';
+      }
+    }
+
+    function removeProfilePhoto() {
+      const preview = document.getElementById('editProfPhotoPreview');
+      const initialsEl = document.getElementById('editProfPhotoInitials');
+      const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
+      const savedProfileStr = sessionStorage.getItem('activeProfile');
+      let profile = {};
+      try { profile = JSON.parse(savedProfileStr || '{}'); } catch(e) {}
+      const name = profile.nama || document.getElementById('editProfNama').value || '';
+      initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+      preview.src = '';
+      preview.style.display = 'none';
+      initialsEl.style.display = 'flex';
+      removeBtn.style.display = 'none';
+      document.getElementById('editProfPhotoInput').value = '';
+    }
+
+    function cancelEditProfile() {
+      document.getElementById('editProfilePanel').style.display = 'none';
+    }
+
+    async function saveProfile(event) {
+      event.preventDefault();
+      const msgEl = document.getElementById('editProfileMsg');
+
+      const nama = document.getElementById('editProfNama').value.trim();
+      const nrp = document.getElementById('editProfNrp').value.trim();
+      const pangkat = document.getElementById('editProfPangkat').value;
+      const corps = document.getElementById('editProfCorps').value;
+      const passBaru = document.getElementById('editProfPassBaru').value;
+      const passKonfirm = document.getElementById('editProfPassKonfirm').value;
+
+      if (!nama) {
+        msgEl.textContent = '❌ Nama lengkap tidak boleh kosong.';
+        msgEl.style.color = 'var(--error)';
+        msgEl.style.background = '#fef2f2';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      if (passBaru && passBaru.length < 4) {
+        msgEl.textContent = '❌ Password baru minimal 4 karakter.';
+        msgEl.style.color = 'var(--error)';
+        msgEl.style.background = '#fef2f2';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      if (passBaru && passBaru !== passKonfirm) {
+        msgEl.textContent = '❌ Konfirmasi password tidak cocok.';
+        msgEl.style.color = 'var(--error)';
+        msgEl.style.background = '#fef2f2';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      // Build updatedProfile dengan foto yang sudah dikompres
+      const preview = document.getElementById('editProfPhotoPreview');
+      const activeUsername = sessionStorage.getItem('activeUsername');
+
+      // Ambil foto lama dari profile yang ada di session
+      const existingProfileStr = sessionStorage.getItem('activeProfile');
+      let existingProfile = {};
+      try { existingProfile = JSON.parse(existingProfileStr || '{}'); } catch(e) {}
+
+      let photo = existingProfile.photo || null;
+      if (preview && preview.style.display !== 'none' && preview.src && preview.src.startsWith('data:')) {
+        photo = preview.src; // sudah dikompres oleh handleProfilePhotoChange
+      } else if (preview && preview.style.display === 'none') {
+        photo = null; // dihapus
+      }
+
+      // Update profile di sessionStorage
+      const updatedProfile = { nama, nrp, pangkat, corps, photo };
+      sessionStorage.setItem('activeProfile', JSON.stringify(updatedProfile));
+
+      // Update di database users (localStorage + online)
+      const users = await fetchUsersOnline();
+      const idx = users.findIndex(u => u.username.toLowerCase() === (activeUsername || '').toLowerCase());
+      if (idx !== -1) {
+        users[idx].profile = updatedProfile;
+        if (passBaru) {
+          users[idx].password = passBaru;
+        }
+        await saveUsersOnline(users);
+      }
+
+      // Refresh tampilan kartu profil
+      loadStudentProfile();
+
+      msgEl.textContent = '✅ Profil berhasil diperbarui!';
+      msgEl.style.color = 'var(--success)';
+      msgEl.style.background = '#f0fdf4';
+      msgEl.style.display = 'block';
+
+      setTimeout(() => {
+        document.getElementById('editProfilePanel').style.display = 'none';
+      }, 1800);
+    }
+
+    async function checkExamAccess() {
+      const schedule = JSON.parse(localStorage.getItem('examSchedule') || 'null');
+      if (!schedule) return true;
+      if (schedule.overrideOpen) return true;
+      
+      let now = new Date();
+      try {
+         showLoading("Mengecek waktu server...");
+         const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Jakarta');
+         if(response.ok) {
+            const data = await response.json();
+            now = new Date(data.datetime);
+         }
+      } catch(e) {
+         console.warn('Waktu server gagal, menggunakan waktu lokal.');
+      } finally {
+         hideLoading();
+      }
+      
+      if (schedule.startTime && now < new Date(schedule.startTime)) {
+        showNotification("Waktu ujian belum dimulai.", "error");
+        return false;
+      }
+      if (schedule.endTime && now > new Date(schedule.endTime)) {
+        showNotification("Waktu ujian telah berakhir.", "error");
+        return false;
+      }
+      return true;
+    }
+
+    async function openStudentTab(tab) {
+      document.getElementById('studentMenuGrid').style.display = 'none';
+      hideError();
+      
+      setTodayDate();
+      
+      if (tab === 'absen') {
+        document.getElementById('studentAbsenPanel').style.display = 'block';
+        document.getElementById('studentUjianPanel').style.display = 'none';
+      } else if (tab === 'ujian') {
+        const hasAccess = await checkExamAccess();
+        if(!hasAccess) {
+          document.getElementById('studentMenuGrid').style.display = 'grid';
+          return;
+        }
+        document.getElementById('studentAbsenPanel').style.display = 'none';
+        document.getElementById('studentUjianPanel').style.display = 'block';
+        document.getElementById('studentUjianForm').style.display = 'block';
+        document.getElementById('resultCard').style.display = 'none';
+        renderStudentQuestions();
+      }
+    }
+
+    function backToStudentMenu() {
+      document.getElementById('studentMenuGrid').style.display = 'grid';
+      document.getElementById('studentAbsenPanel').style.display = 'none';
+      document.getElementById('studentUjianPanel').style.display = 'none';
+      document.getElementById('studentAbsenForm').reset();
+      document.getElementById('studentUjianForm').reset();
+      
+      const cards = document.querySelectorAll('.option-card');
+      cards.forEach(c => c.classList.remove('selected'));
+      
+      hideError();
+    }
+    
+    function setTodayDate() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      let mm = today.getMonth() + 1;
+      let dd = today.getDate();
+      if (dd < 10) dd = '0' + dd;
+      if (mm < 10) mm = '0' + mm;
+      const formattedToday = yyyy + '-' + mm + '-' + dd;
+      
+      const dateEl = document.getElementById('student_tanggal');
+      if (dateEl) dateEl.value = formattedToday;
+    }
+
+    let _lastAttendanceCount = -1;
+    let _pollingInterval = null;
+
+    function playNotificationSound() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      } catch(e) {}
+    }
+
+    async function checkNewAttendance() {
+      try {
+        const att = await fetchAttendanceOnline();
+        if (_lastAttendanceCount !== -1 && att.length > _lastAttendanceCount) {
+          const newAtt = att[att.length - 1];
+          const time = new Date(newAtt.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+          playNotificationSound();
+          showNotification(`🔔 ABSENSI BARU: ${newAtt.nama || newAtt.username} (${time} WIB)`, 'success');
+          if (document.getElementById('adminTab_absensi').style.display === 'block') {
+             loadAdminAttendance();
+          }
+        }
+        _lastAttendanceCount = att.length;
+      } catch(e) {}
+    }
+
+    function startAdminPolling() {
+      if (_pollingInterval) clearInterval(_pollingInterval);
+      _pollingInterval = setInterval(checkNewAttendance, 5000);
+      fetchAttendanceOnline().then(att => _lastAttendanceCount = att.length).catch(()=>{});
+    }
+    
+    function stopAdminPolling() {
+      if (_pollingInterval) clearInterval(_pollingInterval);
+    }
+
+    
