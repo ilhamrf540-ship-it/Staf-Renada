@@ -1552,32 +1552,6 @@
             </div>
           </div>
 
-          <div class="stats-grid" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-            <div class="stat-card" style="border-top: 4px solid var(--primary);">
-              <div class="stat-label">Total Personil</div>
-              <div class="stat-value" id="absStatTotal">0</div>
-            </div>
-            <div class="stat-card success-border">
-              <div class="stat-label">Sudah Absen Hari Ini</div>
-              <div class="stat-value" id="absStatSudah">0</div>
-            </div>
-            <div class="stat-card error-border">
-              <div class="stat-label">Belum Absen</div>
-              <div class="stat-value" id="absStatBelum">0</div>
-            </div>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-            <div style="background: #fff; padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); border-left: 4px solid #f59e0b;">
-              <h4 style="margin:0 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);">Absen Pertama Hari Ini</h4>
-              <div id="absFirstInfo" style="font-weight: 600; color: var(--text-main); font-size: 1rem;">-</div>
-            </div>
-            <div style="background: #fff; padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); border-left: 4px solid #10b981;">
-              <h4 style="margin:0 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);">Absen Terakhir Hari Ini</h4>
-              <div id="absLastInfo" style="font-weight: 600; color: var(--text-main); font-size: 1rem;">-</div>
-            </div>
-          </div>
-
-
           <div class="table-container">
             <table>
               <thead>
@@ -2435,7 +2409,7 @@
         studentPortal.style.display = 'none';
         adminPortal.style.display = 'block';
         
-        // switchAdminTab('ringkasan') already triggers loadAdminDashboard()
+        startAdminPolling();
         await switchAdminTab('ringkasan');
       }
     }
@@ -2486,6 +2460,24 @@
       if (savedProfileStr) {
         try { profile = JSON.parse(savedProfileStr); } catch(e) {}
       }
+      
+      try {
+        const attendances = await fetchAttendanceOnline();
+        const todayStr = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Jakarta" }).substring(0, 10);
+        const hasAbsented = attendances.find(a => a.username === activeUser && String(a.timestamp).substring(0, 10) === todayStr);
+        const btnAbsen = document.querySelector('#studentMenuGrid .stat-card:first-child .btn');
+        const cardAbsen = document.querySelector('#studentMenuGrid .stat-card:first-child');
+        
+        if (hasAbsented && btnAbsen && cardAbsen) {
+          btnAbsen.textContent = 'ANDA SUDAH ABSEN';
+          btnAbsen.style.backgroundColor = '#94a3b8';
+          cardAbsen.onclick = (e) => {
+             e.preventDefault();
+             e.stopPropagation();
+             alert(`Anda telah melakukan absensi pada ${new Date(hasAbsented.timestamp).toLocaleString('id-ID')} WIB.`);
+          };
+        }
+      } catch (e) { console.error('Gagal mengecek absensi:', e); }
       
       document.getElementById('profNama').textContent = profile.nama || activeUser || '-';
       document.getElementById('profNrp').textContent = profile.nrp || '-';
@@ -2671,12 +2663,25 @@
       }, 1800);
     }
 
-    function checkExamAccess() {
+    async function checkExamAccess() {
       const schedule = JSON.parse(localStorage.getItem('examSchedule') || 'null');
       if (!schedule) return true;
       if (schedule.overrideOpen) return true;
       
-      const now = new Date();
+      let now = new Date();
+      try {
+         showLoading("Mengecek waktu server...");
+         const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Jakarta');
+         if(response.ok) {
+            const data = await response.json();
+            now = new Date(data.datetime);
+         }
+      } catch(e) {
+         console.warn('Waktu server gagal, menggunakan waktu lokal.');
+      } finally {
+         hideLoading();
+      }
+      
       if (schedule.startTime && now < new Date(schedule.startTime)) {
         showNotification("Waktu ujian belum dimulai.", "error");
         return false;
@@ -2698,7 +2703,8 @@
         document.getElementById('studentAbsenPanel').style.display = 'block';
         document.getElementById('studentUjianPanel').style.display = 'none';
       } else if (tab === 'ujian') {
-        if(!checkExamAccess()) {
+        const hasAccess = await checkExamAccess();
+        if(!hasAccess) {
           document.getElementById('studentMenuGrid').style.display = 'grid';
           return;
         }
@@ -2736,7 +2742,55 @@
       if (dateEl) dateEl.value = formattedToday;
     }
 
+    let _lastAttendanceCount = -1;
+    let _pollingInterval = null;
+
+    function playNotificationSound() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      } catch(e) {}
+    }
+
+    async function checkNewAttendance() {
+      try {
+        const att = await fetchAttendanceOnline();
+        if (_lastAttendanceCount !== -1 && att.length > _lastAttendanceCount) {
+          const newAtt = att[att.length - 1];
+          const time = new Date(newAtt.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+          playNotificationSound();
+          showNotification(`🔔 ABSENSI BARU: ${newAtt.nama || newAtt.username} (${time} WIB)`, 'success');
+          if (document.getElementById('adminTab_absensi').style.display === 'block') {
+             loadAdminAttendance();
+          }
+        }
+        _lastAttendanceCount = att.length;
+      } catch(e) {}
+    }
+
+    function startAdminPolling() {
+      if (_pollingInterval) clearInterval(_pollingInterval);
+      _pollingInterval = setInterval(checkNewAttendance, 5000);
+      fetchAttendanceOnline().then(att => _lastAttendanceCount = att.length).catch(()=>{});
+    }
+    
+    function stopAdminPolling() {
+      if (_pollingInterval) clearInterval(_pollingInterval);
+    }
+
     function handleLogout() {
+      stopAdminPolling();
       sessionStorage.clear();
       currentRole = null;
       document.getElementById('mainApp').style.display = 'none';
@@ -2862,9 +2916,20 @@
         }
 
         hideError();
+        
+        let serverISO = new Date().toISOString();
+        try {
+          const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Jakarta');
+          if (response.ok) {
+            const data = await response.json();
+            serverISO = data.datetime;
+          }
+        } catch (e) {
+          console.warn('Waktu server gagal diambil, menggunakan waktu lokal.');
+        }
 
         const newAttendance = {
-          timestamp: new Date().toISOString(),
+          timestamp: serverISO,
           username: activeUser,
           nama: profile.nama || activeUser || "",
           nrp: profile.nrp || "",
@@ -3152,7 +3217,7 @@
       }
     }
 
-    async function loadAdminAttendance() {
+    async async function loadAdminAttendance() {
       const attendance = await fetchAttendanceOnline();
       
       // Sort by timestamp ascending
@@ -3161,6 +3226,42 @@
       const tbody = document.getElementById('attendanceTableBody');
       if (!tbody) return;
       tbody.innerHTML = '';
+      
+      // Calculate Stats for Today
+      try {
+        const users = await fetchUsersOnline();
+        const students = users.filter(u => u.role === 'siswa');
+        const totalSiswa = students.length;
+        
+        const todayStr = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Jakarta" }).substring(0, 10);
+        const todaysAttendance = attendance.filter(a => String(a.timestamp).substring(0, 10) === todayStr);
+        
+        const totalSudah = todaysAttendance.length;
+        const totalBelum = Math.max(0, totalSiswa - totalSudah);
+        
+        if(document.getElementById('absStatTotal')) document.getElementById('absStatTotal').textContent = totalSiswa;
+        if(document.getElementById('absStatSudah')) document.getElementById('absStatSudah').textContent = totalSudah;
+        if(document.getElementById('absStatBelum')) document.getElementById('absStatBelum').textContent = totalBelum;
+        
+        const elFirst = document.getElementById('absFirstInfo');
+        const elLast = document.getElementById('absLastInfo');
+        if(todaysAttendance.length > 0) {
+           const first = todaysAttendance[0];
+           const last = todaysAttendance[todaysAttendance.length - 1];
+           
+           if(elFirst) {
+             const firstTime = new Date(first.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second:'2-digit' });
+             elFirst.innerHTML = `${first.nama || first.username} <span style="font-size:0.85rem; color:var(--text-muted);">(${first.nrp || '-'})</span><br><span style="color:var(--primary);">${firstTime} WIB</span>`;
+           }
+           if(elLast) {
+             const lastTime = new Date(last.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second:'2-digit' });
+             elLast.innerHTML = `${last.nama || last.username} <span style="font-size:0.85rem; color:var(--text-muted);">(${last.nrp || '-'})</span><br><span style="color:var(--primary);">${lastTime} WIB</span>`;
+           }
+        } else {
+           if(elFirst) elFirst.textContent = 'Belum ada absen';
+           if(elLast) elLast.textContent = 'Belum ada absen';
+        }
+      } catch(e) { console.error("Gagal memuat statistik absen", e); }
 
       attendance.forEach(att => {
         const tr = document.createElement('tr');
