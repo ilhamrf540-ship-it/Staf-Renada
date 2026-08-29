@@ -1,0 +1,81 @@
+<div id="adminTab_soal" style="display: none;">
+          <!-- Management Dynamic Questions Block -->
+          <!-- Exam Schedule Block -->
+          <div class="dashboard-card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <h4 style="margin-bottom: 0;">⏳ Pengaturan Waktu Akses Ujian</h4>
+              <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; cursor: pointer; font-weight: 600; color: var(--error);">
+                <input type="checkbox" id="examOverride" onchange="saveExamSchedule()" style="width: auto;"> Buka Paksa Akses (Abaikan Waktu)
+              </label>
+            </div>
+            <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="examStartTime">Waktu Mulai</label>
+                <input type="datetime-local" id="examStartTime" onchange="saveExamSchedule()">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="examEndTime">Waktu Selesai</label>
+                <input type="datetime-local" id="examEndTime" onchange="saveExamSchedule()">
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+          <h3>Manajemen Soal Ujian Esai</h3>
+          
+          <!-- Import/Export buttons -->
+          <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+            <input type="file" id="importQuestionsFile" accept=".csv, .txt" onchange="importQuestions(this)" style="display: none;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('importQuestionsFile').click()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+              📥 Import Soal (.csv / .txt)
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="exportQuestionsToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+              📝 Export ke Word (.doc)
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="exportQuestionsToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+              📊 Export ke Excel (.xls)
+            </button>
+          </div>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; margin-top: -0.75rem;">
+            * Format berkas import (.txt/.csv): <code>Pertanyaan | kata_kunci1, kata_kunci2</code> (Satu soal per baris).
+          </p>
+          
+          <!-- Add / Edit Form -->
+          <form id="questionForm" onsubmit="saveQuestion(event)" style="background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+            <input type="hidden" id="editQuestId" value="">
+            
+            <div class="form-group">
+              <label for="editQuestText">Teks Pertanyaan Esai <span class="required">*</span></label>
+              <textarea id="editQuestText" rows="2" placeholder="Tuliskan pertanyaan ujian baru..." required></textarea>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 1rem;">
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label for="editQuestKeywords">Kata Kunci Penilaian Otomatis <span class="required">*</span></label>
+              <input type="text" id="editQuestKeywords" placeholder="Pisahkan dengan koma (contoh: beringin, pohon, persatuan)" required>
+              <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 3px;">Sistem akan mengoreksi jawaban esai sebagai 'Benar' jika berisi salah satu dari kata kunci ini.</p>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label for="editQuestFile">Dokumen Pendukung Soal (Opsional)</label>
+              <input type="file" id="editQuestFile" accept=".pdf, .doc, .docx, .xls, .xlsx, .png, .jpg, .jpeg">
+              <div id="editQuestFileStatus" style="font-size: 0.8rem; margin-top: 4px; color: var(--accent); font-weight: 600;"></div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem;">
+              <button type="submit" class="btn btn-accent" id="submitQuestBtn">
+                <span id="submitQuestBtnText">Tambah Soal Baru</span>
+              </button>
+              <button type="button" class="btn btn-secondary" id="btnCancelEditQuest" onclick="cancelEditQuestion()" style="display: none;">
+                Batal
+              </button>
+            </div>
+          </form>
+
+          <!-- List of Questions -->
+          <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-family: 'Outfit', sans-serif;">Daftar Soal Ujian:</h4>
+          <div id="adminQuestionsList">
+            <!-- Questions rendered dynamically -->
+          </div>
+        </div>
+        </div> <!-- End adminTab_soal -->
