@@ -1,2327 +1,2454 @@
-
-    function showLoading(text = 'Memproses data...') {
-      const overlay = document.getElementById('loadingOverlay');
-      const textEl = document.getElementById('loadingText');
-      if(overlay && textEl) {
-        overlay.style.display = 'flex';
-        let progress = 0;
-        textEl.innerText = `${text} ${progress}%`;
-        
-        window._loadingInterval = setInterval(() => {
-          progress += Math.floor(Math.random() * 20) + 10;
-          if(progress > 95) progress = 95;
-          textEl.innerText = `${text} ${progress}%`;
-        }, 100);
-      }
-    }
-
-    function hideLoading() {
-      const overlay = document.getElementById('loadingOverlay');
-      const textEl = document.getElementById('loadingText');
-      if(overlay) {
-        clearInterval(window._loadingInterval);
-        if(textEl) textEl.innerText = 'Selesai 100%';
-        setTimeout(() => { overlay.style.display = 'none'; }, 300);
-      }
-    }
-
-    function showNotification(message, type = 'info') {
-      const container = document.getElementById('toastContainer');
-      if (!container) return;
-      const toast = document.createElement('div');
-      toast.className = `toast-msg toast-${type}`;
-      
-      let icon = 'ℹ️';
-      if(type === 'success') icon = '✅';
-      else if(type === 'error') icon = '⚠️';
-      
-      toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
-      container.appendChild(toast);
-      
-      setTimeout(() => {
-        if(container.contains(toast)) {
-          toast.remove();
-        }
-      }, 3300);
-    }
-
-    // State
-    let currentRole = null; // 'siswa' or 'admin'
-    let currentLoginTab = 'siswa';
-
-    // Database Google Sheets Web App REST API (with LocalStorage fallback)
-    function getScriptUrl() {
-      return localStorage.getItem('google_sheets_api_url') || "https://script.google.com/macros/s/AKfycbzCHBJTp5m4eEaN8pldyZTo1-xstFSMPJMGy8sHePjUvK8wicucWwU95SbgNuNA9pPxiQ/exec";
-    }
-
-    async function fetchQuestionsOnline() {
-      const url = getScriptUrl();
-      if (!url) {
-        try {
-          const localData = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-          if (Array.isArray(localData)) {
-            const validLocal = localData.filter(q => q && typeof q === 'object' && q.id);
-            if (validLocal.length > 0) return validLocal;
-          }
-        } catch(err) {}
-        localStorage.setItem('exam_questions', JSON.stringify([]));
-        return [];
-      }
-      try {
-        const response = await fetch(url + "?action=getQuestions");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const qList = await response.json();
-        if (Array.isArray(qList)) {
-          const validQs = qList.filter(q => q && typeof q === 'object' && q.id);
-          if (validQs.length > 0) {
-            localStorage.setItem('exam_questions', JSON.stringify(validQs));
-            return validQs;
-          }
-        }
-        await saveQuestionsOnline([]);
-        return [];
-      } catch (e) {
-        console.error("Error fetching questions online:", e);
-        try {
-          const localData = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-          if (Array.isArray(localData)) {
-            const validLocal = localData.filter(q => q && typeof q === 'object' && q.id);
-            if (validLocal.length > 0) return validLocal;
-          }
-        } catch(err) {}
-        localStorage.setItem('exam_questions', JSON.stringify([]));
-        return [];
-      }
-    }
-
-    async function saveQuestionsOnline(questions) {
-      localStorage.setItem('exam_questions', JSON.stringify(questions));
-      const url = getScriptUrl();
-      if (!url) return;
-      try {
-        const response = await fetch(url + "?action=saveQuestions", {
-          method: 'POST',
-          body: JSON.stringify(questions)
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-      } catch(e) {
-        console.error("Error saving questions online:", e);
-      }
-    }
-
-    async function fetchUsersOnline() {
-      const url = getScriptUrl();
-      if (!url) {
-        try {
-          const localData = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-          if (Array.isArray(localData)) {
-            return localData.filter(u => u && typeof u === 'object' && u.username);
-          }
-        } catch(err) {}
-        localStorage.setItem('registeredUsers', JSON.stringify([]));
-        return [];
-      }
-      try {
-        const response = await fetch(url + "?action=getUsers");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const userList = await response.json();
-        if (Array.isArray(userList)) {
-          const validUsers = userList.filter(u => u && typeof u === 'object' && u.username);
-          localStorage.setItem('registeredUsers', JSON.stringify(validUsers));
-          return validUsers;
-        }
-        throw new Error("Invalid or empty data from server");
-      } catch (e) {
-        console.error("Error fetching users online:", e);
-        try {
-          const localData = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-          if (Array.isArray(localData)) {
-            return localData.filter(u => u && typeof u === 'object' && u.username);
-          }
-        } catch(err) {
-          console.error("Local storage corrupted, resetting:", err);
-        }
-        localStorage.setItem('registeredUsers', JSON.stringify([]));
-        return [];
-      }
-    }
-
-    async function saveUsersOnline(users) {
-      showLoading("Menyimpan data personel...");
-      localStorage.setItem('registeredUsers', JSON.stringify(users));
-      const url = getScriptUrl();
-      if (!url) return;
-      try {
-        const response = await fetch(url + "?action=saveUsers", {
-          method: 'POST',
-          body: JSON.stringify(users)
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-      } catch(e) {
-        console.error("Error saving users online:", e);
-      } finally {
-        hideLoading();
-      }
-    }
-
-    // Kompres gambar ke thumbnail kecil (max 150px, JPEG quality 0.6) → base64 ~5-10KB
-    function compressImage(file, maxSize, quality) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = reject;
-        reader.onload = function(e) {
-          const img = new Image();
-          img.onerror = reject;
-          img.onload = function() {
-            const canvas = document.createElement('canvas');
-            let w = img.width, h = img.height;
-            if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
-            else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/jpeg', quality));
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    async function fetchSubmissionsOnline() {
-      const url = getScriptUrl();
-      if (!url) {
-        try {
-          const localData = JSON.parse(localStorage.getItem('submissions') || '[]');
-          if (Array.isArray(localData)) {
-            return localData.filter(s => s && typeof s === 'object' && s.username);
-          }
-        } catch(err) {}
-        localStorage.setItem('submissions', JSON.stringify([]));
-        return [];
-      }
-      try {
-        const response = await fetch(url + "?action=getSubmissions");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const subList = await response.json();
-        if (Array.isArray(subList)) {
-          const validSubs = subList.filter(s => s && typeof s === 'object' && s.username);
-          localStorage.setItem('submissions', JSON.stringify(validSubs));
-          return validSubs;
-        }
-        throw new Error("Invalid data");
-      } catch(e) {
-        console.error("Error fetching submissions online:", e);
-        try {
-          const localData = JSON.parse(localStorage.getItem('submissions') || '[]');
-          if (Array.isArray(localData)) {
-            return localData.filter(s => s && typeof s === 'object' && s.username);
-          }
-        } catch(err) {}
-        localStorage.setItem('submissions', JSON.stringify([]));
-        return [];
-      }
-    }
-
-    async function saveSubmissionsOnline(submissions) {
-      showLoading("Menyimpan jawaban ujian...");
-      localStorage.setItem('submissions', JSON.stringify(submissions));
-      const url = getScriptUrl();
-      if (!url) return;
-      try {
-        const response = await fetch(url + "?action=saveSubmissions", {
-          method: 'POST',
-          body: JSON.stringify(submissions)
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-      } catch(e) {
-        console.error("Error saving submissions online:", e);
-      } finally {
-        hideLoading();
-      }
-    }
-
-    async function fetchAttendanceOnline() {
-      const url = getScriptUrl();
-      if (!url) {
-        try {
-          const localData = JSON.parse(localStorage.getItem('attendance') || '[]');
-          if (Array.isArray(localData)) {
-            return localData.filter(a => a && typeof a === 'object' && a.username);
-          }
-        } catch(err) {}
-        localStorage.setItem('attendance', JSON.stringify([]));
-        return [];
-      }
-      try {
-        const response = await fetch(url + "?action=getAttendance");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const attList = await response.json();
-        if (Array.isArray(attList)) {
-          const validAtt = attList.filter(a => a && typeof a === 'object' && a.username);
-          localStorage.setItem('attendance', JSON.stringify(validAtt));
-          return validAtt;
-        }
-        throw new Error("Invalid attendance data");
-      } catch(e) {
-        console.error("Error fetching attendance online:", e);
-        try {
-          const localData = JSON.parse(localStorage.getItem('attendance') || '[]');
-          if (Array.isArray(localData)) {
-            return localData.filter(a => a && typeof a === 'object' && a.username);
-          }
-        } catch(err) {}
-        localStorage.setItem('attendance', JSON.stringify([]));
-        return [];
-      }
-    }
-
-    async function saveAttendanceOnline(attendance) {
-      showLoading("Menyimpan absensi...");
-      localStorage.setItem('attendance', JSON.stringify(attendance));
-      const url = getScriptUrl();
-      if (!url) return;
-      try {
-        const response = await fetch(url + "?action=saveAttendance", {
-          method: 'POST',
-          body: JSON.stringify(attendance)
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-      } catch(e) {
-        console.error("Error saving attendance online:", e);
-      } finally {
-        hideLoading();
-      }
-    }
-
-    // Default mock questions to seed localStorage on first load
-
-    // UI Settings Logic
-    function loadUISettings() {
-      try {
-        const settings = JSON.parse(localStorage.getItem('uiSettings'));
-        if (settings) {
-          // Apply Texts
-          const headerTitleEls = document.querySelectorAll('header h1, .login-header h1');
-          headerTitleEls.forEach(el => {
-            if (settings.portalTitle) el.innerText = settings.portalTitle;
-          });
-          
-          const headerSubtitleEls = document.querySelectorAll('header p, .login-header p');
-          headerSubtitleEls.forEach(el => {
-            if (settings.portalSubtitle) el.innerText = settings.portalSubtitle;
-          });
-
-          // Apply Colors
-          if (settings.bgColorStart && settings.bgColorEnd) {
-            document.body.style.background = `linear-gradient(135deg, ${settings.bgColorStart} 0%, ${settings.bgColorEnd} 100%)`;
-          }
-        }
-      } catch(e) {
-        console.error("Gagal load UI Settings", e);
-      }
-    }
-
-    function populateAdminUIForm() {
-      try {
-        const sched = JSON.parse(localStorage.getItem('examSchedule'));
-        if(sched) {
-          if(document.getElementById('examStartTime')) document.getElementById('examStartTime').value = sched.startTime || '';
-          if(document.getElementById('examEndTime')) document.getElementById('examEndTime').value = sched.endTime || '';
-          if(document.getElementById('examOverride')) document.getElementById('examOverride').checked = sched.overrideOpen || false;
-        }
-
-        const settings = JSON.parse(localStorage.getItem('uiSettings'));
-        if (settings) {
-          if(document.getElementById('uiPortalTitle')) document.getElementById('uiPortalTitle').value = settings.portalTitle || '';
-          if(document.getElementById('uiPortalSubtitle')) document.getElementById('uiPortalSubtitle').value = settings.portalSubtitle || '';
-          if(document.getElementById('uiBgColorStart')) document.getElementById('uiBgColorStart').value = settings.bgColorStart || '#e2e8f0';
-          if(document.getElementById('uiBgColorEnd')) document.getElementById('uiBgColorEnd').value = settings.bgColorEnd || '#cbd5e1';
-        }
-      } catch(e) { }
-    }
-
-    function saveExamSchedule() {
-      const sched = {
-        startTime: document.getElementById('examStartTime').value,
-        endTime: document.getElementById('examEndTime').value,
-        overrideOpen: document.getElementById('examOverride').checked
-      };
-      localStorage.setItem('examSchedule', JSON.stringify(sched));
-      showNotification("Jadwal ujian diperbarui.", "success");
-    }
-
-    function saveUISettings() {
-      const settings = {
-        portalTitle: document.getElementById('uiPortalTitle').value,
-        portalSubtitle: document.getElementById('uiPortalSubtitle').value,
-        bgColorStart: document.getElementById('uiBgColorStart').value,
-        bgColorEnd: document.getElementById('uiBgColorEnd').value
-      };
-      localStorage.setItem('uiSettings', JSON.stringify(settings));
-      loadUISettings();
-      showNotification("Pengaturan Tampilan berhasil disimpan!", "success");
-    }
-
-    function resetUISettings() {
-      if(confirm("Anda yakin ingin mengembalikan tampilan ke awal?")) {
-        localStorage.removeItem('uiSettings');
-        document.body.style.background = 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)';
-        
-        const headerTitleEls = document.querySelectorAll('header h1, .login-header h1');
-        headerTitleEls.forEach(el => el.innerText = 'Portal Evaluasi & Ujian');
-        
-        const headerSubtitleEls = document.querySelectorAll('header p, .login-header p');
-        headerSubtitleEls.forEach(el => el.innerText = 'Silakan masuk ke dalam sistem menggunakan akun Anda');
-        
-        if(document.getElementById('uiPortalTitle')) document.getElementById('uiPortalTitle').value = '';
-        if(document.getElementById('uiPortalSubtitle')) document.getElementById('uiPortalSubtitle').value = '';
-        if(document.getElementById('uiBgColorStart')) document.getElementById('uiBgColorStart').value = '#e2e8f0';
-        if(document.getElementById('uiBgColorEnd')) document.getElementById('uiBgColorEnd').value = '#cbd5e1';
-        
-        showNotification("Pengaturan dikembalikan ke awal!", "info");
-      }
-    }
-
-    // Initialize Page
-    document.addEventListener("DOMContentLoaded", () => {
-      loadUISettings();
-      populateAdminUIForm();
-      // Ensure default mock questions are completely purged from old memory
-      try {
-        let existingQ = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-        if (existingQ.length > 0) {
-          existingQ = existingQ.filter(q => {
-            const isMock = (q.id === 1 && q.text.includes('Pancasila')) ||
-                           (q.id === 2 && q.text.includes('Indonesia Raya')) ||
-                           (q.id === 3 && q.text.includes('15 + 3 x 4')) ||
-                           (q.id === 4 && q.text.includes('Planet Merah')) ||
-                           (q.id === 5 && q.text.includes('apotek'));
-            return !isMock;
-          });
-          localStorage.setItem('exam_questions', JSON.stringify(existingQ));
-        }
-      } catch(e) {}
-
-      // Seed default data if completely empty
-      if (!localStorage.getItem('exam_questions')) {
-        localStorage.setItem('exam_questions', JSON.stringify([]));
-      }
-
-      // Fetch online data to sync local storage on load (in background)
-      fetchQuestionsOnline();
-      fetchUsersOnline();
-      fetchSubmissionsOnline();
-      fetchAttendanceOnline();
-
-      // Check active session if page refreshed
-      const savedRole = sessionStorage.getItem('activeRole');
-      const savedUser = sessionStorage.getItem('activeUsername');
-      if (savedRole && savedUser) {
-        const roleLabel = savedRole === 'admin' ? 'Operator / Admin' : 'Personel / Siswa';
-        const savedProfileStr = sessionStorage.getItem('activeProfile');
-        let profile = {};
-        if (savedProfileStr) {
-          try {
-            profile = JSON.parse(savedProfileStr);
-          } catch(e) {}
-        }
-        loginSuccess(savedRole, roleLabel, savedUser, profile);
-      }
-      
-      // Auto dates
-      setTodayDate();
-
-      // Check Google Sheets Status
-      checkGoogleSheetsStatus();
-    });
-
-    function setTodayDate() {
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      let mm = today.getMonth() + 1;
-      let dd = today.getDate();
-      if (dd < 10) dd = '0' + dd;
-      if (mm < 10) mm = '0' + mm;
-      const formattedToday = yyyy + '-' + mm + '-' + dd;
-      const dateEl = document.getElementById('tanggal');
-      if (dateEl) dateEl.value = formattedToday;
-    }
-
-    // Google Sheets Config Helpers
-    function saveGoogleSheetsConfig() {
-      const url = document.getElementById('googleSheetsApiUrl').value.trim();
-      const statusMsg = document.getElementById('sheetsStatusMessage');
-      
-      if (!url) {
-        statusMsg.textContent = "❌ Harap masukkan URL Web App yang valid.";
-        statusMsg.style.color = "var(--error)";
-        return;
-      }
-      
-      if (!url.startsWith("https://script.google.com/")) {
-        statusMsg.textContent = "❌ URL harus berawalan dari Google Script (https://script.google.com/)";
-        statusMsg.style.color = "var(--error)";
-        return;
-      }
-      
-      localStorage.setItem('google_sheets_api_url', url);
-      statusMsg.textContent = "⏳ Mencoba menghubungkan ke Google Sheets...";
-      statusMsg.style.color = "var(--text-muted)";
-      
-      // Test the URL connection by fetching users
-      fetch(url + "?action=getUsers")
-        .then(res => {
-          if (res.ok) {
-            statusMsg.textContent = "✅ Sukses terhubung ke Google Sheets! Sinkronisasi aktif.";
-            statusMsg.style.color = "var(--success)";
-            document.getElementById('disconnectSheetsBtn').style.display = 'inline-block';
-            // Sync all database data immediately
-            setTimeout(() => {
-              location.reload();
-            }, 1500);
-          } else {
-            throw new Error();
-          }
-        })
-        .catch(err => {
-          statusMsg.textContent = "⚠️ Gagal terhubung. Pastikan Web App Anda di-deploy dengan akses 'Anyone'.";
-          statusMsg.style.color = "var(--error)";
-        });
-    }
-
-    function disconnectGoogleSheets() {
-      localStorage.removeItem('google_sheets_api_url');
-      document.getElementById('googleSheetsApiUrl').value = "";
-      document.getElementById('disconnectSheetsBtn').style.display = 'none';
-      const statusMsg = document.getElementById('sheetsStatusMessage');
-      statusMsg.textContent = "🔌 Sinkronisasi dinonaktifkan. Menggunakan penyimpanan lokal browser (LocalStorage).";
-      statusMsg.style.color = "var(--text-muted)";
-      setTimeout(() => {
-        location.reload();
-      }, 1500);
-    }
-
-    function checkGoogleSheetsStatus() {
-      const url = localStorage.getItem('google_sheets_api_url');
-      const inputEl = document.getElementById('googleSheetsApiUrl');
-      const disBtn = document.getElementById('disconnectSheetsBtn');
-      const statusMsg = document.getElementById('sheetsStatusMessage');
-      
-      if (url && inputEl && disBtn && statusMsg) {
-        inputEl.value = url;
-        disBtn.style.display = 'inline-block';
-        statusMsg.textContent = "✅ Terhubung ke Google Sheets (Sinkronisasi Aktif)";
-        statusMsg.style.color = "var(--success)";
-      }
-    }
-
-    // Switch Login Tabs
-    function switchLoginTab(role) {
-      currentLoginTab = role;
-      document.getElementById('loginErrorBox').style.display = 'none';
-      document.getElementById('registerSuccessBox').style.display = 'none';
-      const btns = document.querySelectorAll('.login-tab-btn');
-      btns.forEach(btn => btn.classList.remove('active'));
-      
-      const form = document.getElementById('loginForm');
-      form.reset();
-
-      if (role === 'siswa') {
-        btns[0].classList.add('active');
-        document.getElementById('loginHint').innerHTML = 'Hint: gunakan <strong>siswa</strong> atau akun baru';
-        document.getElementById('loginPassHint').innerHTML = 'Hint: gunakan <strong>siswa123</strong> atau password baru';
-      } else {
-        btns[1].classList.add('active');
-        document.getElementById('loginHint').innerHTML = 'Hint: gunakan <strong>admin</strong> atau akun baru';
-        document.getElementById('loginPassHint').innerHTML = 'Hint: gunakan <strong>admin123</strong> atau password baru';
-      }
-    }
-
-    // Toggle registration fields based on role
-    function toggleRegRoleFields(role) {
-      const regSiswaFields = document.getElementById('regSiswaFields');
-      if (role === 'siswa') {
-        regSiswaFields.style.display = 'block';
-        document.getElementById('regNama').required = true;
-        document.getElementById('regNrp').required = true;
-        document.getElementById('regPangkat').required = true;
-        document.getElementById('regCorps').required = true;
-      } else {
-        regSiswaFields.style.display = 'none';
-        document.getElementById('regNama').required = false;
-        document.getElementById('regNrp').required = false;
-        document.getElementById('regPangkat').required = false;
-        document.getElementById('regCorps').required = false;
-      }
-    }
-
-    // Toggle login/register forms
-    function showRegisterForm(show) {
-      document.getElementById('loginErrorBox').style.display = 'none';
-      document.getElementById('registerSuccessBox').style.display = 'none';
-      
-      if (show) {
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('loginTabsHeader').style.display = 'none';
-        document.getElementById('registerForm').style.display = 'block';
-        document.querySelector('.login-header p').textContent = 'Daftar akun baru';
-        
-        // Match registration role with active login tab
-        document.getElementById('regRole').value = currentLoginTab;
-        toggleRegRoleFields(currentLoginTab);
-      } else {
-        document.getElementById('loginForm').style.display = 'block';
-        document.getElementById('loginTabsHeader').style.display = 'flex';
-        document.getElementById('registerForm').style.display = 'none';
-        
-        try {
-          const settings = JSON.parse(localStorage.getItem('uiSettings'));
-          document.querySelector('.login-header p').textContent = settings?.portalSubtitle ? settings.portalSubtitle : 'Silakan masuk ke dalam sistem menggunakan akun Anda';
-        } catch(e) {
-          document.querySelector('.login-header p').textContent = 'Silakan masuk ke dalam sistem menggunakan akun Anda';
-        }
-        
-        switchLoginTab(currentLoginTab);
-      }
-    }
-
-    // Handle User Registration
-    async function handleRegister(event) {
-      event.preventDefault();
-      const role = document.getElementById('regRole').value;
-      const username = document.getElementById('regUsername').value.trim();
-      const password = document.getElementById('regPassword').value;
-      const errorBox = document.getElementById('loginErrorBox');
-      const successBox = document.getElementById('registerSuccessBox');
-
-      errorBox.style.display = 'none';
-      successBox.style.display = 'none';
-
-      if (username.length < 3) {
-        errorBox.querySelector('span').textContent = 'Username minimal 3 karakter.';
-        errorBox.style.display = 'flex';
-        return;
-      }
-      if (password.length < 4) {
-        errorBox.querySelector('span').textContent = 'Password minimal 4 karakter.';
-        errorBox.style.display = 'flex';
-        return;
-      }
-
-      // Read profile data if siswa
-      let profile = {};
-      if (role === 'siswa') {
-        const nama = document.getElementById('regNama').value.trim();
-        const nrp = document.getElementById('regNrp').value.trim();
-        const pangkat = document.getElementById('regPangkat').value;
-        const corps = document.getElementById('regCorps').value;
-
-        if (!nama || !nrp || !pangkat || !corps) {
-          errorBox.querySelector('span').textContent = 'Harap isi semua kolom identitas personel.';
-          errorBox.style.display = 'flex';
-          return;
-        }
-        profile = { nama, nrp, pangkat, corps };
-      }
-
-      // Check username duplicate in localStorage
-      const users = await fetchUsersOnline();
-      const userExists = users.some(u => u.username.toLowerCase() === username.toLowerCase());
-
-      if (userExists || username.toLowerCase() === 'siswa' || username.toLowerCase() === 'admin') {
-        errorBox.querySelector('span').textContent = 'Username ini sudah terdaftar.';
-        errorBox.style.display = 'flex';
-        return;
-      }
-
-      const newUser = { role, username, password, profile };
-      users.push(newUser);
-      await saveUsersOnline(users);
-
-      // Clear Form and redirect to login
-      document.getElementById('registerForm').reset();
-      showRegisterForm(false);
-      
-      document.getElementById('registerSuccessMsg').textContent = `Akun "${username}" (${role === 'admin' ? 'Operator' : 'Personel'}) berhasil dibuat!`;
-      document.getElementById('registerSuccessBox').style.display = 'flex';
-    }
-
-    // Handle Login authentication
-    async function handleLogin(event) {
-      event.preventDefault();
-      const userVal = document.getElementById('username').value.trim();
-      const passVal = document.getElementById('password').value;
-      const errorBox = document.getElementById('loginErrorBox');
-      const successBox = document.getElementById('registerSuccessBox');
-
-      errorBox.style.display = 'none';
-      successBox.style.display = 'none';
-
-      // 1. Check custom database online
-      const users = await fetchUsersOnline();
-      const customUser = users.find(u => u.username.toLowerCase() === userVal.toLowerCase() && u.password === passVal);
-
-      if (customUser) {
-        if (customUser.role === currentLoginTab) {
-          const roleLabel = customUser.role === 'admin' ? 'Operator / Admin' : 'Personel / Siswa';
-          loginSuccess(customUser.role, roleLabel, customUser.username, customUser.profile);
-          return;
-        } else {
-          errorBox.querySelector('span').textContent = `Akun terdaftar sebagai ${customUser.role === 'admin' ? 'Operator' : 'Personel'}. Harap ganti tab login di atas.`;
-          errorBox.style.display = 'flex';
-          return;
-        }
-      }
-
-      // 2. Check defaults
-      if (currentLoginTab === 'siswa') {
-        if (userVal === 'siswa' && passVal === 'siswa123') {
-          // default student fallback profile
-          const defaultProfile = { nama: 'Siswa Cadangan', nrp: '000000', pangkat: 'Letda', corps: 'Infanteri (Inf)' };
-          loginSuccess('siswa', 'Personel / Siswa', 'siswa', defaultProfile);
-        } else {
-          errorBox.querySelector('span').textContent = 'Username atau Password salah.';
-          errorBox.style.display = 'flex';
-        }
-      } else if (currentLoginTab === 'admin') {
-        if (userVal === 'admin' && passVal === 'admin123') {
-          loginSuccess('admin', 'Operator / Admin', 'admin', {});
-        } else {
-          errorBox.querySelector('span').textContent = 'Username atau Password salah.';
-          errorBox.style.display = 'flex';
-        }
-      }
-    }
-
-    function loginSuccess(role, roleLabel, username, profile) {
-      currentRole = role;
-      sessionStorage.setItem('activeRole', role);
-      sessionStorage.setItem('activeUsername', username);
-      if (profile && Object.keys(profile).length > 0) {
-        sessionStorage.setItem('activeProfile', JSON.stringify(profile));
-      }
-      
-      document.getElementById('loginPortal').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'block';
-      
-      document.getElementById('navUsername').textContent = username;
-      document.getElementById('navRole').textContent = roleLabel;
-      
-      showPanelForRole(role);
-    }
-
-    async function showPanelForRole(role) {
-      const studentPortal = document.getElementById('studentPortal');
-      const adminPortal = document.getElementById('adminPortal');
-
-      if (role === 'siswa') {
-        studentPortal.style.display = 'block';
-        adminPortal.style.display = 'none';
-        
-        loadStudentProfile();
-        backToStudentMenu();
-      } else {
-        studentPortal.style.display = 'none';
-        adminPortal.style.display = 'block';
-        
-        // switchAdminTab('ringkasan') already triggers loadAdminDashboard()
-        await switchAdminTab('ringkasan');
-      }
-    }
-
-    async function switchAdminTab(tabName) {
-      const tabs = ['ringkasan', 'soal', 'personel', 'absensi', 'hasil', 'sync', 'tampilan'];
-      tabs.forEach(t => {
-        const el = document.getElementById('adminTab_' + t);
-        if (el) el.style.display = 'none';
-      });
-
-      const selectedEl = document.getElementById('adminTab_' + tabName);
-      if (selectedEl) selectedEl.style.display = 'block';
-
-      const buttons = document.querySelectorAll('.admin-tab-btn');
-      buttons.forEach(btn => {
-        btn.style.background = '#f1f5f9';
-        btn.style.color = 'var(--text-main)';
-        btn.style.borderColor = 'var(--border-color)';
-      });
-
-      const activeBtn = document.getElementById('btnTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
-      if (activeBtn) {
-        activeBtn.style.background = 'var(--primary)';
-        activeBtn.style.color = '#ffffff';
-        activeBtn.style.borderColor = 'var(--primary)';
-      }
-
-      // Refresh data setiap kali tab dibuka (agar selalu sinkron)
-      try {
-        if (tabName === 'personel') {
-          await renderAdminPersonnel();
-        } else if (tabName === 'ringkasan' || tabName === 'hasil') {
-          await loadAdminDashboard();
-        } else if (tabName === 'absensi') {
-          await loadAdminAttendance();
-        } else if (tabName === 'soal') {
-          await fetchQuestionsOnline();
-          renderAdminQuestions();
-        }
-      } catch(e) { console.error('Tab refresh error:', e); }
-    }
-
-    async function loadStudentProfile() {
-      const activeUser = sessionStorage.getItem('activeUsername');
-      const savedProfileStr = sessionStorage.getItem('activeProfile');
-      let profile = {};
-      if (savedProfileStr) {
-        try { profile = JSON.parse(savedProfileStr); } catch(e) {}
-      }
-      
-      document.getElementById('profNama').textContent = profile.nama || activeUser || '-';
-      document.getElementById('profNrp').textContent = profile.nrp || '-';
-      document.getElementById('profPangkat').textContent = profile.pangkat || '-';
-      document.getElementById('profCorps').textContent = profile.corps || '-';
-
-      // Handle avatar foto/inisial
-      const photo = profile.photo || null;
-      const photoEl = document.getElementById('profPhoto');
-      const initialsEl = document.getElementById('profInitials');
-      if (photo) {
-        photoEl.src = photo;
-        photoEl.style.display = 'block';
-        initialsEl.style.display = 'none';
-      } else {
-        photoEl.style.display = 'none';
-        initialsEl.style.display = 'flex';
-        const name = profile.nama || activeUser || '?';
-        initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
-      }
-    }
-
-    function openEditProfile() {
-      const panel = document.getElementById('editProfilePanel');
-      const msgEl = document.getElementById('editProfileMsg');
-
-      // Populate current values
-      const savedProfileStr = sessionStorage.getItem('activeProfile');
-      let profile = {};
-      try { profile = JSON.parse(savedProfileStr || '{}'); } catch(e) {}
-
-      document.getElementById('editProfNama').value = profile.nama || '';
-      document.getElementById('editProfNrp').value = profile.nrp || '';
-      document.getElementById('editProfPangkat').value = profile.pangkat || '';
-      document.getElementById('editProfCorps').value = profile.corps || '';
-      document.getElementById('editProfPassBaru').value = '';
-      document.getElementById('editProfPassKonfirm').value = '';
-      if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
-
-      // Populate photo preview dari profile.photo
-      const photo = profile.photo || null;
-      const preview = document.getElementById('editProfPhotoPreview');
-      const initialsEl = document.getElementById('editProfPhotoInitials');
-      const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
-      if (photo) {
-        preview.src = photo;
-        preview.style.display = 'block';
-        initialsEl.style.display = 'none';
-        removeBtn.style.display = 'inline-block';
-      } else {
-        preview.style.display = 'none';
-        initialsEl.style.display = 'flex';
-        const name = profile.nama || '';
-        initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
-        removeBtn.style.display = 'none';
-      }
-      document.getElementById('editProfPhotoInput').value = '';
-
-      panel.style.display = 'block';
-      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    async function handleProfilePhotoChange(input) {
-      const file = input.files[0];
-      if (!file) return;
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Ukuran foto maksimal 5MB.');
-        input.value = '';
-        return;
-      }
-      try {
-        // Kompres ke thumbnail 150x150 JPEG quality 0.6 (∼5-10KB)
-        const compressed = await compressImage(file, 150, 0.6);
-        const preview = document.getElementById('editProfPhotoPreview');
-        const initialsEl = document.getElementById('editProfPhotoInitials');
-        const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
-        preview.src = compressed;
-        preview.style.display = 'block';
-        initialsEl.style.display = 'none';
-        removeBtn.style.display = 'inline-block';
-      } catch(e) {
-        alert('Gagal memproses foto. Coba foto lain.');
-        input.value = '';
-      }
-    }
-
-    function removeProfilePhoto() {
-      const preview = document.getElementById('editProfPhotoPreview');
-      const initialsEl = document.getElementById('editProfPhotoInitials');
-      const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
-      const savedProfileStr = sessionStorage.getItem('activeProfile');
-      let profile = {};
-      try { profile = JSON.parse(savedProfileStr || '{}'); } catch(e) {}
-      const name = profile.nama || document.getElementById('editProfNama').value || '';
-      initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
-      preview.src = '';
-      preview.style.display = 'none';
-      initialsEl.style.display = 'flex';
-      removeBtn.style.display = 'none';
-      document.getElementById('editProfPhotoInput').value = '';
-    }
-
-    function cancelEditProfile() {
-      document.getElementById('editProfilePanel').style.display = 'none';
-    }
-
-    async function saveProfile(event) {
-      event.preventDefault();
-      const msgEl = document.getElementById('editProfileMsg');
-
-      const nama = document.getElementById('editProfNama').value.trim();
-      const nrp = document.getElementById('editProfNrp').value.trim();
-      const pangkat = document.getElementById('editProfPangkat').value;
-      const corps = document.getElementById('editProfCorps').value;
-      const passBaru = document.getElementById('editProfPassBaru').value;
-      const passKonfirm = document.getElementById('editProfPassKonfirm').value;
-
-      if (!nama) {
-        msgEl.textContent = '❌ Nama lengkap tidak boleh kosong.';
-        msgEl.style.color = 'var(--error)';
-        msgEl.style.background = '#fef2f2';
-        msgEl.style.display = 'block';
-        return;
-      }
-
-      if (passBaru && passBaru.length < 4) {
-        msgEl.textContent = '❌ Password baru minimal 4 karakter.';
-        msgEl.style.color = 'var(--error)';
-        msgEl.style.background = '#fef2f2';
-        msgEl.style.display = 'block';
-        return;
-      }
-
-      if (passBaru && passBaru !== passKonfirm) {
-        msgEl.textContent = '❌ Konfirmasi password tidak cocok.';
-        msgEl.style.color = 'var(--error)';
-        msgEl.style.background = '#fef2f2';
-        msgEl.style.display = 'block';
-        return;
-      }
-
-      // Build updatedProfile dengan foto yang sudah dikompres
-      const preview = document.getElementById('editProfPhotoPreview');
-      const activeUsername = sessionStorage.getItem('activeUsername');
-
-      // Ambil foto lama dari profile yang ada di session
-      const existingProfileStr = sessionStorage.getItem('activeProfile');
-      let existingProfile = {};
-      try { existingProfile = JSON.parse(existingProfileStr || '{}'); } catch(e) {}
-
-      let photo = existingProfile.photo || null;
-      if (preview && preview.style.display !== 'none' && preview.src && preview.src.startsWith('data:')) {
-        photo = preview.src; // sudah dikompres oleh handleProfilePhotoChange
-      } else if (preview && preview.style.display === 'none') {
-        photo = null; // dihapus
-      }
-
-      // Update profile di sessionStorage
-      const updatedProfile = { nama, nrp, pangkat, corps, photo };
-      sessionStorage.setItem('activeProfile', JSON.stringify(updatedProfile));
-
-      // Update di database users (localStorage + online)
-      const users = await fetchUsersOnline();
-      const idx = users.findIndex(u => u.username.toLowerCase() === (activeUsername || '').toLowerCase());
-      if (idx !== -1) {
-        users[idx].profile = updatedProfile;
-        if (passBaru) {
-          users[idx].password = passBaru;
-        }
-        await saveUsersOnline(users);
-      }
-
-      // Refresh tampilan kartu profil
-      loadStudentProfile();
-
-      msgEl.textContent = '✅ Profil berhasil diperbarui!';
-      msgEl.style.color = 'var(--success)';
-      msgEl.style.background = '#f0fdf4';
-      msgEl.style.display = 'block';
-
-      setTimeout(() => {
-        document.getElementById('editProfilePanel').style.display = 'none';
-      }, 1800);
-    }
-
-    function checkExamAccess() {
-      const schedule = JSON.parse(localStorage.getItem('examSchedule') || 'null');
-      if (!schedule) return true;
-      if (schedule.overrideOpen) return true;
-      
-      const now = new Date();
-      if (schedule.startTime && now < new Date(schedule.startTime)) {
-        showNotification("Waktu ujian belum dimulai.", "error");
-        return false;
-      }
-      if (schedule.endTime && now > new Date(schedule.endTime)) {
-        showNotification("Waktu ujian telah berakhir.", "error");
-        return false;
-      }
-      return true;
-    }
-
-    async function openStudentTab(tab) {
-      document.getElementById('studentMenuGrid').style.display = 'none';
-      hideError();
-      
-      setTodayDate();
-      
-      if (tab === 'absen') {
-        document.getElementById('studentAbsenPanel').style.display = 'block';
-        document.getElementById('studentUjianPanel').style.display = 'none';
-      } else if (tab === 'ujian') {
-        if(!checkExamAccess()) {
-          document.getElementById('studentMenuGrid').style.display = 'grid';
-          return;
-        }
-        document.getElementById('studentAbsenPanel').style.display = 'none';
-        document.getElementById('studentUjianPanel').style.display = 'block';
-        document.getElementById('studentUjianForm').style.display = 'block';
-        document.getElementById('resultCard').style.display = 'none';
-        renderStudentQuestions();
-      }
-    }
-
-    function backToStudentMenu() {
-      document.getElementById('studentMenuGrid').style.display = 'grid';
-      document.getElementById('studentAbsenPanel').style.display = 'none';
-      document.getElementById('studentUjianPanel').style.display = 'none';
-      document.getElementById('studentAbsenForm').reset();
-      document.getElementById('studentUjianForm').reset();
-      
-      const cards = document.querySelectorAll('.option-card');
-      cards.forEach(c => c.classList.remove('selected'));
-      
-      hideError();
-    }
-    
-    function setTodayDate() {
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      let mm = today.getMonth() + 1;
-      let dd = today.getDate();
-      if (dd < 10) dd = '0' + dd;
-      if (mm < 10) mm = '0' + mm;
-      const formattedToday = yyyy + '-' + mm + '-' + dd;
-      
-      const dateEl = document.getElementById('student_tanggal');
-      if (dateEl) dateEl.value = formattedToday;
-    }
-
-    function handleLogout() {
-      sessionStorage.clear();
-      currentRole = null;
-      document.getElementById('mainApp').style.display = 'none';
-      document.getElementById('loginPortal').style.display = 'block';
-      switchLoginTab('siswa');
-    }
-
-    // Radio styles
-    function updateRadioCard(radio) {
-      const cards = document.querySelectorAll('.option-card');
-      cards.forEach(c => c.classList.remove('selected'));
-      radio.closest('.option-card').classList.add('selected');
-      hideError();
-    }
-
-    // Validation
-    function showError(msg) {
-      const errorBox = document.getElementById('errorBox');
-      document.getElementById('errorMsg').textContent = msg;
-      errorBox.style.display = 'flex';
-      window.scrollTo({ top: errorBox.offsetTop - 20, behavior: 'smooth' });
-    }
-
-    function hideError() {
-      document.getElementById('errorBox').style.display = 'none';
-    }
-
-    function validateSection3() {
-      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        const textarea = document.querySelector(`textarea[name="dynamic_q_${q.id}"]`);
-        const val = textarea ? textarea.value.trim() : '';
-        if (!val) {
-          showError(`Harap jawab Soal Nomor ${i + 1} terlebih dahulu.`);
-          return false;
-        }
-      }
-      return true;
-    }
-
-    // Dynamic rendering of student form textareas
-    function renderStudentQuestions() {
-      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-      const container = document.getElementById('dynamicQuestionsContainer');
-      container.innerHTML = '';
-
-      if (questions.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--text-muted);">Tidak ada soal ujian aktif saat ini. Silakan hubungi Operator.</div>`;
-        return;
-      }
-
-      questions.forEach((q, index) => {
-        const div = document.createElement('div');
-        div.className = 'question-block';
-        
-        let fileLinkHtml = '';
-        if (q.fileData) {
-          fileLinkHtml = `<div style="margin-top: 0.5rem; margin-bottom: 1rem; font-size: 0.85rem; background: var(--primary-light); padding: 0.5rem; border-radius: var(--radius-sm); border: 1px dashed var(--primary);">
-            📄 <a href="${q.fileData}" download="${q.fileName}" style="color:var(--primary); font-weight:700; text-decoration:underline;">Unduh Dokumen Soal (${q.fileName})</a>
-            <span class="text-muted" style="font-size:0.75rem; display:block; margin-top: 2px;">Diunggah oleh Admin pada: ${q.fileUploadTime}</span>
-          </div>`;
-        }
-
-        div.innerHTML = `
-          <div class="question-text">${index + 1}. ${q.text} <span class="required">*</span></div>
-          ${fileLinkHtml}
-          <div class="answers-list">
-            <textarea name="dynamic_q_${q.id}" rows="3" placeholder="Tuliskan jawaban esai Anda..." required></textarea>
-          </div>
-          
-          <div class="form-group" style="margin-top: 1rem; margin-bottom: 0;">
-            <label style="font-size: 0.8rem; color: var(--text-muted);">Unggah Berkas Pendukung Jawaban Anda (Opsional)</label>
-            <input type="file" id="ansFile_${q.id}" accept=".pdf, .doc, .docx, .xls, .xlsx, .png, .jpg, .jpeg" onchange="handleAnswerFileChange(this, ${q.id})">
-            <input type="hidden" id="ansFileData_${q.id}" value="">
-            <input type="hidden" id="ansFileName_${q.id}" value="">
-            <input type="hidden" id="ansFileTime_${q.id}" value="">
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    // Handle student answer sheet file upload conversion
-    window.handleAnswerFileChange = function(input, qId) {
-      const file = input.files[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const now = new Date();
-        const timeStr = now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-        document.getElementById(`ansFileData_${qId}`).value = e.target.result;
-        document.getElementById(`ansFileName_${qId}`).value = file.name;
-        document.getElementById(`ansFileTime_${qId}`).value = timeStr;
-      };
-      reader.readAsDataURL(file);
-    };
-
-    // Attendance Submission & online database saving
-    async function submitAttendance(event) {
-      if (event) event.preventDefault();
-      try {
-        const activeUser = sessionStorage.getItem('activeUsername');
-        const savedProfileStr = sessionStorage.getItem('activeProfile');
-        let profile = {};
-        if (savedProfileStr) {
-          try { profile = JSON.parse(savedProfileStr); } catch(e) {}
-        }
-
-        const kehadiranEl = document.querySelector('input[name="student_kehadiran"]:checked');
-        if (!kehadiranEl) {
-          showError("Silakan pilih status kehadiran Anda.");
-          return;
-        }
-        const kehadiran = kehadiranEl.value;
-        const tanggal = document.getElementById('student_tanggal').value;
-        const keterangan = document.getElementById('student_keterangan').value.trim();
-
-        if (!tanggal) {
-          showError("Harap tentukan tanggal pelaksanaan.");
-          return;
-        }
-
-        hideError();
-
-        const newAttendance = {
-          timestamp: new Date().toISOString(),
-          username: activeUser,
-          nama: profile.nama || activeUser || "",
-          nrp: profile.nrp || "",
-          pangkat: profile.pangkat || "",
-          corps: profile.corps || "",
-          kehadiran,
-          keterangan
-        };
-
-        const existing = await fetchAttendanceOnline();
-        existing.push(newAttendance);
-        await saveAttendanceOnline(existing);
-
-        showNotification('Absensi Anda berhasil dikirim ke Operator.', 'success');
-        
-        document.getElementById('studentAbsenForm').reset();
-        backToStudentMenu();
-      } catch(error) {
-        showNotification("Gagal mengirim absensi: " + error.message, 'error');
-        console.error(error);
-      }
-    }
-
-    // Exam Submission & online database saving
-    async function submitExam(event) {
-      if (event) event.preventDefault();
-      try {
-        const questions = await fetchQuestionsOnline();
-        if (questions.length === 0) {
-          alert('Tidak ada soal ujian yang bisa dikirim.');
-          return;
-        }
-
-        if (!validateSection3()) return;
-        hideError();
-
-        const activeUser = sessionStorage.getItem('activeUsername');
-        const savedProfileStr = sessionStorage.getItem('activeProfile');
-        let profile = {};
-        if (savedProfileStr) {
-          try { profile = JSON.parse(savedProfileStr); } catch(e) {}
-        }
-
-        const nama = profile.nama || activeUser || "-";
-        const nrp = profile.nrp || "-";
-        const pangkat = profile.pangkat || "";
-        const corps = profile.corps || "";
-        const tanggal = new Date().toISOString().split('T')[0];
-
-        // Calculation
-        let correctCount = 0;
-        const totalQuestions = questions.length;
-        const studentAnswers = {};
-        const studentFiles = {};
-
-        questions.forEach(q => {
-          const textarea = document.querySelector(`textarea[name="dynamic_q_${q.id}"]`);
-          const ans = textarea ? textarea.value.trim() : '';
-          studentAnswers[q.id] = ans; // key is question id
-          
-          // Grab uploaded file details safely
-          const fDataEl = document.getElementById(`ansFileData_${q.id}`);
-          const fNameEl = document.getElementById(`ansFileName_${q.id}`);
-          const fTimeEl = document.getElementById(`ansFileTime_${q.id}`);
-          const fData = fDataEl ? fDataEl.value : '';
-          const fName = fNameEl ? fNameEl.value : '';
-          const fTime = fTimeEl ? fTimeEl.value : '';
-          
-          if (fData) {
-            studentFiles[q.id] = { fileData: fData, fileName: fName, fileTime: fTime };
-          }
-
-          // Auto grade essay using keyword matches
-          const textToSearch = ans.toLowerCase();
-          const keywords = q.keywords;
-          const isMatched = keywords.some(kw => textToSearch.includes(kw.toLowerCase()));
-          
-          if (isMatched) {
-            correctCount++;
-          }
-        });
-
-        const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
-        const now = new Date();
-        const submissionTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-
-        // Save submission data
-        const newSubmission = {
-          id: Date.now(),
-          timestamp: new Date().toISOString(),
-          username: activeUser,
-          profile: {
-            nama,
-            nrp,
-            pangkat,
-            corps
-          },
-          answers: studentAnswers,
-          answerFiles: studentFiles,
-          score,
-          correctCount,
-          totalQuestions
-        };
-
-        const existing = await fetchSubmissionsOnline();
-        existing.push(newSubmission);
-        await saveSubmissionsOnline(existing);
-
-        alert('✅ Berhasil! Jawaban ujian dan dokumen Anda telah sukses terkirim ke Operator.');
-
-        // Display student result card
-        document.getElementById('finalScore').textContent = score;
-        document.getElementById('resNama').textContent = nama;
-        document.getElementById('resNis').textContent = nrp;
-        document.getElementById('resKelasJurusan').textContent = `${pangkat} - ${corps}`;
-        document.getElementById('resTanggal').textContent = formatDate(tanggal);
-        document.getElementById('resBenar').textContent = `${correctCount} / ${totalQuestions}`;
-
-        const badge = document.getElementById('passingBadge');
-        if (score >= 70) {
-          badge.textContent = 'LULUS (TUNTAS)';
-          badge.className = 'badge badge-passed';
-        } else {
-          badge.textContent = 'BELUM TUNTAS';
-          badge.className = 'badge badge-failed';
-        }
-
-        document.getElementById('studentUjianForm').style.display = 'none';
-        document.getElementById('resultCard').style.display = 'block';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } catch (error) {
-        alert("Gagal mengirim jawaban: " + error.message);
-        console.error(error);
-      }
-    }
-
-    // Dynamic rendering of questions list in Admin panel
-    function renderAdminQuestions() {
-      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-      const listDiv = document.getElementById('adminQuestionsList');
-      listDiv.innerHTML = '';
-
-      if (questions.length === 0) {
-        listDiv.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 1.5rem; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">Belum ada soal ujian esai yang dibuat. Gunakan form di atas untuk menambahkan.</div>`;
-        return;
-      }
-
-      questions.forEach((q, index) => {
-        const div = document.createElement('div');
-        div.style = 'background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius-sm); margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;';
-        
-        let fileLinkHtml = '';
-        if (q.fileData) {
-          fileLinkHtml = `<div style="font-size: 0.8rem; margin-top: 0.35rem;">
-            📄 Dokumen: <a href="${q.fileData}" download="${q.fileName}" style="color:var(--accent); font-weight:700; text-decoration:underline;">${q.fileName}</a>
-            <span class="text-muted" style="font-size: 0.75rem;">(Diunggah: ${q.fileUploadTime})</span>
-          </div>`;
-        }
-
-        div.innerHTML = `
-          <div style="flex: 1; min-width: 250px;">
-            <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">Soal ${index + 1}: ${q.text}</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;">Kata Kunci Evaluasi: <strong>${q.keywords.join(', ')}</strong></div>
-            ${fileLinkHtml}
-          </div>
-          <div style="display: flex; gap: 0.5rem;">
-            <button class="btn btn-secondary" onclick="editQuestion(${q.id})" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">Edit</button>
-            <button class="btn btn-danger" onclick="deleteQuestion(${q.id})" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">Hapus</button>
-          </div>
-        `;
-        listDiv.appendChild(div);
-      });
-    }
-
-    // Save or Edit Questions
-    function saveQuestion(event) {
-      event.preventDefault();
-      const idVal = document.getElementById('editQuestId').value;
-      const textVal = document.getElementById('editQuestText').value.trim();
-      const keywordsVal = document.getElementById('editQuestKeywords').value.trim();
-      const fileInput = document.getElementById('editQuestFile');
-      const file = fileInput.files[0];
-
-      if (!textVal || !keywordsVal) {
-        alert('Semua kolom wajib diisi.');
-        return;
-      }
-
-      const keywords = keywordsVal.split(',').map(k => k.trim()).filter(k => k.length > 0);
-
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const now = new Date();
-          const uploadTime = now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-          saveToLocalStorage(idVal, textVal, keywords, e.target.result, file.name, uploadTime);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        // Keep existing file if editing, else null
-        let existingFile = null;
-        let existingFileName = '';
-        let existingTime = '';
-        if (idVal) {
-          const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-          const q = questions.find(item => item.id == idVal);
-          if (q && q.fileData) {
-            existingFile = q.fileData;
-            existingFileName = q.fileName;
-            existingTime = q.fileUploadTime;
-          }
-        }
-        saveToLocalStorage(idVal, textVal, keywords, existingFile, existingFileName, existingTime);
-      }
-    }
-
-    async function saveToLocalStorage(idVal, text, keywords, fileData, fileName, fileUploadTime) {
-      let questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-      if (idVal) {
-        questions = questions.map(q => q.id == idVal ? { id: parseInt(idVal), text, keywords, fileData, fileName, fileUploadTime } : q);
-      } else {
-        const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
-        questions.push({ id: newId, text, keywords, fileData, fileName, fileUploadTime });
-      }
-      
-      // Save online first
-      await saveQuestionsOnline(questions);
-
-      // Reset Form
-      document.getElementById('questionForm').reset();
-      document.getElementById('editQuestId').value = '';
-      document.getElementById('editQuestFileStatus').textContent = '';
-      document.getElementById('btnCancelEditQuest').style.display = 'none';
-      document.getElementById('submitQuestBtnText').textContent = 'Tambah Soal Baru';
-      renderAdminQuestions();
-    }
-
-    function editQuestion(id) {
-      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-      const q = questions.find(item => item.id === id);
-      if (!q) return;
-
-      document.getElementById('editQuestId').value = q.id;
-      document.getElementById('editQuestText').value = q.text;
-      document.getElementById('editQuestKeywords').value = q.keywords.join(', ');
-      
-      if (q.fileName) {
-        document.getElementById('editQuestFileStatus').textContent = `File saat ini: ${q.fileName} (Diunggah pada: ${q.fileUploadTime})`;
-      } else {
-        document.getElementById('editQuestFileStatus').textContent = '';
-      }
-
-      document.getElementById('btnCancelEditQuest').style.display = 'inline-flex';
-      document.getElementById('submitQuestBtnText').textContent = 'Simpan Perubahan';
-      
-      window.scrollTo({ top: document.getElementById('questionForm').offsetTop - 20, behavior: 'smooth' });
-    }
-
-    function cancelEditQuestion() {
-      document.getElementById('questionForm').reset();
-      document.getElementById('editQuestId').value = '';
-      document.getElementById('editQuestFileStatus').textContent = '';
-      document.getElementById('btnCancelEditQuest').style.display = 'none';
-      document.getElementById('submitQuestBtnText').textContent = 'Tambah Soal Baru';
-    }
-
-    async function deleteQuestion(id) {
-      if (!confirm('Apakah Anda yakin ingin menghapus soal ini?')) return;
-      let questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-      questions = questions.filter(q => q.id !== id);
-      
-      await saveQuestionsOnline(questions);
-      renderAdminQuestions();
-    }
-    function formatDateTime(isoString) {
-      if (!isoString) return '-';
-      try {
-        const d = new Date(isoString);
-        if (isNaN(d.getTime())) return isoString;
-        const dateStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-        const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        return `${dateStr} - ${timeStr} WIB`;
-      } catch(e) {
-        return isoString;
-      }
-    }
-
-    async function loadAdminAttendance() {
-      const attendance = await fetchAttendanceOnline();
-      
-      // Sort by timestamp ascending
-      attendance.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-      const tbody = document.getElementById('attendanceTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-
-      attendance.forEach(att => {
-        const tr = document.createElement('tr');
-        
-        let colorStyle = 'background: #dcfce7; color: #15803d;'; // Hadir green
-        if (att.kehadiran === 'Sakit') colorStyle = 'background: #fef9c3; color: #a16207;'; // Yellow
-        if (att.kehadiran === 'Izin') colorStyle = 'background: #e0f2fe; color: #0369a1;'; // Blue
-        if (att.kehadiran === 'Alpa') colorStyle = 'background: #fee2e2; color: #b91c1c;'; // Red
-
-        tr.innerHTML = `
-          <td style="font-size:0.85rem; font-weight:600;">${formatDateTime(att.timestamp)}</td>
-          <td><strong>${att.nrp || '-'}</strong></td>
-          <td style="font-weight:600; color:var(--text-dark);">${att.nama}</td>
-          <td>${att.pangkat || '-'}</td>
-          <td>${att.corps || '-'}</td>
-          <td><span class="badge" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: var(--radius-sm); ${colorStyle}">${att.kehadiran}</span></td>
-          <td style="font-size:0.85rem; color:var(--text-muted);">${att.keterangan || '-'}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      if (attendance.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada absensi harian yang masuk hari ini.</td></tr>`;
-      }
-    }
-
-    async function clearAllAttendance() {
-      if (confirm('Apakah Anda yakin ingin menghapus seluruh data rekap absensi? Tindakan ini tidak dapat dibatalkan.')) {
-        localStorage.removeItem('attendance');
-        await saveAttendanceOnline([]);
-        await loadAdminAttendance();
-      }
-    }
-
-    // Load Admin Submission Dashboard
-    async function loadAdminDashboard() {
-      // Load attendance table first
-      await loadAdminAttendance();
-
-      // Fetch submissions from online source
-      const submissions = await fetchSubmissionsOnline();
-      
-      // Fetch registered users count
-      const users = await fetchUsersOnline();
-      const personnelCount = users.filter(u => u.role === 'siswa').length;
-
-      // Sort submissions by timestamp (id) descending (newest first)
-      submissions.sort((a, b) => b.id - a.id);
-
-      const tbody = document.getElementById('submissionsTableBody');
-      if (tbody) tbody.innerHTML = '';
-
-      let totalScore = 0;
-      let passedCount = 0;
-      let failedCount = 0;
-
-      submissions.forEach(sub => {
-        totalScore += sub.score;
-        if (sub.score >= 70) passedCount++;
-        else failedCount++;
-
-        const prof = sub.profile || { nama: sub.nama, nrp: sub.nis, pangkat: sub.kelas, corps: sub.jurusan };
-        const examTimeStr = sub.timestamp ? formatDateTime(sub.timestamp) : `${formatDate(sub.tanggal)} pukul ${sub.jam || '--:--'} WIB`;
-
-        if (!tbody) return;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td style="font-size:0.85rem; font-weight:600;">${examTimeStr}</td>
-          <td><strong>${prof.nrp || '-'}</strong></td>
-          <td>${prof.nama}</td>
-          <td>${prof.pangkat || '-'}</td>
-          <td>${prof.corps || '-'}</td>
-          <td>
-            <span class="score-badge ${sub.score >= 70 ? 'passed' : 'failed'}">${sub.score}</span>
-          </td>
-          <td>
-            <button class="btn btn-secondary" onclick="viewDetail(${sub.id})" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
-              Lihat Detail
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      if (tbody && submissions.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada hasil ujian yang terkirim.</td></tr>`;
-      }
-
-      // Update statistics panel widgets
-      const statPersonnelEl = document.getElementById('statPersonnel');
-      if (statPersonnelEl) statPersonnelEl.textContent = personnelCount;
-      document.getElementById('statTotal').textContent = submissions.length;
-      document.getElementById('statAverage').textContent = submissions.length > 0 ? (totalScore / submissions.length).toFixed(1) : '0.0';
-      document.getElementById('statPassed').textContent = passedCount;
-      document.getElementById('statFailed').textContent = failedCount;
-
-      // Render personnel cards in Ringkasan
-      renderRingkasanPersonnel().catch(e => console.error(e));
-    }
-
-    // View Detail Modal of answers
-    function viewDetail(id) {
-      const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
-      const sub = submissions.find(s => s.id === id);
-      if (!sub) return;
-
-      // We need to look up active or saved questions text
-      // Let's check saved questions in the submission. If not saved, load current exam questions as fallback.
-      const currentQuestions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-
-      let answersHtml = '';
-      
-      // Go through each submitted answer
-      Object.keys(sub.answers).forEach((qId, index) => {
-        const ans = sub.answers[qId];
-        
-        // Find question text
-        const qRef = currentQuestions.find(q => q.id == qId);
-        const questText = qRef ? qRef.text : `Pertanyaan Kustom (ID: ${qId})`;
-        const keywords = qRef ? qRef.keywords : [];
-        
-        const isCorrect = keywords.some(kw => ans.toLowerCase().includes(kw.toLowerCase()));
-
-        let fileLink = '';
-        if (sub.answerFiles && sub.answerFiles[qId]) {
-          const fileObj = sub.answerFiles[qId];
-          fileLink = `<div style="font-size:0.8rem; margin-top:0.5rem; background: var(--primary-light); padding: 0.4rem; border-radius: 4px; display: block; width: fit-content;">
-            📄 File Jawaban: <a href="${fileObj.fileData}" download="${fileObj.fileName}" style="color:var(--primary); font-weight:700; text-decoration:underline;">${fileObj.fileName}</a>
-            <span style="font-size:0.7rem; color:var(--text-muted); margin-left: 5px;">(Diunggah: ${fileObj.fileTime})</span>
-          </div>`;
-        }
-
-        answersHtml += `
-          <div style="margin-bottom: 0.85rem; padding: 0.5rem; background: ${isCorrect ? 'var(--accent-light)' : '#fef2f2'}; border-radius: 4px;">
-            <div style="font-size: 0.85rem; font-weight: 600;">${index + 1}. ${questText}</div>
-            <div style="font-size: 0.85rem; margin-top: 0.25rem;">
-              Jawaban Personel: <span style="display:block; padding: 0.25rem; font-style: italic; background:#ffffff; border:1px solid var(--border-color); margin-top:0.25rem;">"${ans}"</span>
-              ${fileLink}
-              <span style="font-size:0.75rem; display:block; margin-top:0.25rem;">Pencocokan Kata Kunci: ${isCorrect ? '🟢 Cocok' : '🔴 Tidak Cocok'} ${keywords.length > 0 ? `(Target: ${keywords.join('/')})` : ''}</span>
-            </div>
-          </div>
-        `;
-      });
-
-      const body = document.getElementById('modalDetailsBody');
-      body.innerHTML = `
-        <div style="margin-bottom: 1rem; font-size: 0.9rem;">
-          <p><strong>Nama:</strong> ${sub.nama}</p>
-          <p><strong>NRP:</strong> ${sub.nis}</p>
-          <p><strong>Pangkat / Corps:</strong> ${sub.kelas} - ${sub.jurusan}</p>
-          <p><strong>Keterangan Absensi:</strong> ${sub.keterangan || '-'}</p>
-        </div>
-        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1rem 0;">
-        <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem;">Lembar Jawaban:</h4>
-        ${answersHtml || '<p style="font-size:0.85rem; color:var(--text-muted);">Tidak ada jawaban terekam.</p>'}
-      `;
-
-      document.getElementById('detailModal').style.display = 'flex';
-    }
-
-    function closeModal() {
-      document.getElementById('detailModal').style.display = 'none';
-    }
-
-    function clearAllSubmissions() {
-      if (confirm('Apakah Anda yakin ingin menghapus seluruh data hasil ujian masuk? Tindakan ini tidak dapat dibatalkan.')) {
-        localStorage.removeItem('submissions');
-        loadAdminDashboard();
-      }
-    }
-
-    function resetForm() {
-      backToStudentMenu();
-    }
-
-    function formatDate(dateStr) {
-      if (!dateStr) return '-';
-      const parts = dateStr.split('-');
-      if (parts.length !== 3) return dateStr;
-      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-      return `${parseInt(parts[2], 10)} ${months[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
-    }
-
-    // ==========================================
-    // EXPORT & IMPORT QUESTIONS
-    // ==========================================
-
-    function exportQuestionsToWord() {
-      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-      if (questions.length === 0) return alert('Tidak ada soal untuk diexport.');
-      
-      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><title>Daftar Soal Ujian</title><style>body {font-family: Arial;}</style></head>
-      <body>
-      <h2>DAFTAR SOAL UJIAN ESAI</h2>
-      <ol>`;
-      
-      questions.forEach(q => {
-        html += `<li><strong>Pertanyaan:</strong> ${q.text}<br><strong>Kata Kunci:</strong> ${q.keywords.join(', ')}</li><br>`;
-      });
-      
-      html += `</ol></body></html>`;
-      
-      const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Daftar_Soal_Ujian.doc';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    function exportQuestionsToExcel() {
-      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-      if (questions.length === 0) return alert('Tidak ada soal untuk diexport.');
-      
-      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><meta charset="utf-8"></head>
-      <body>
-      <table border="1">
-        <tr>
-          <th style="background-color: #1e3a8a; color: white;">No</th>
-          <th style="background-color: #1e3a8a; color: white;">Pertanyaan</th>
-          <th style="background-color: #1e3a8a; color: white;">Kata Kunci Evaluasi</th>
-        </tr>`;
-        
-      questions.forEach((q, index) => {
-        html += `<tr>
-          <td>${index + 1}</td>
-          <td>${q.text}</td>
-          <td>${q.keywords.join(', ')}</td>
-        </tr>`;
-      });
-      
-      html += `</table></body></html>`;
-      
-      const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Daftar_Soal_Ujian.xls';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    async function importQuestions(input) {
-      const file = input.files[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        const text = e.target.result;
-        const lines = text.split('\n');
-        let questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
-        let importedCount = 0;
-        
-        lines.forEach(line => {
-          if (!line.trim()) return;
-          const parts = line.split('|');
-          if (parts.length >= 2) {
-            const questText = parts[0].trim();
-            const keywords = parts[1].split(',').map(k => k.trim()).filter(k => k.length > 0);
-            
-            if (questText && keywords.length > 0) {
-              const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
-              questions.push({ id: newId, text: questText, keywords });
-              importedCount++;
-            }
-          }
-        });
-        
-        if (importedCount > 0) {
-          await saveQuestionsOnline(questions);
-          renderAdminQuestions();
-          alert(`Berhasil mengimpor ${importedCount} soal.`);
-        } else {
-          alert('Gagal mengimpor. Pastikan format file menggunakan pemisah pipa (contoh: Pertanyaan | kunci1, kunci2)');
-        }
-        input.value = '';
-      };
-      reader.readAsText(file);
-    }
-
-    // ==========================================
-    // EXPORT SUBMISSION RESULTS (BONUS)
-    // ==========================================
-
-    function exportResultsToWord() {
-      const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
-      if (submissions.length === 0) return alert('Tidak ada hasil ujian untuk diexport.');
-      
-      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><title>Hasil Ujian Personel</title><style>body {font-family: Arial;} table {border-collapse: collapse; width: 100%;} th, td {border: 1px solid black; padding: 8px;}</style></head>
-      <body>
-      <h2>REKAPITULASI HASIL UJIAN PERSONEL TNI</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>NRP</th>
-            <th>Nama Lengkap</th>
-            <th>Pangkat</th>
-            <th>Corps</th>
-            <th>Kehadiran</th>
-            <th>Tanggal</th>
-            <th>Nilai</th>
-          </tr>
-        </thead>
-        <tbody>`;
-        
-      submissions.forEach(sub => {
-        html += `<tr>
-          <td>${sub.nis}</td>
-          <td>${sub.nama}</td>
-          <td>${sub.kelas}</td>
-          <td>${sub.jurusan}</td>
-          <td>${sub.kehadiran}</td>
-          <td>${formatDate(sub.tanggal)}</td>
-          <td>${sub.score}</td>
-        </tr>`;
-      });
-      
-      html += `</tbody></table></body></html>`;
-      
-      const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Rekap_Hasil_Ujian.doc';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    function exportAttendanceToExcel() {
-      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
-      if (attendance.length === 0) return alert('Tidak ada rekap absensi untuk diexport.');
-      
-      // Sort by timestamp ascending
-      attendance.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      
-      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><meta charset="utf-8"></head>
-      <body>
-      <table border="1">
-        <thead>
-          <tr>
-            <th style="background-color: #1e3a8a; color: white;">Tanggal & Waktu Absen</th>
-            <th style="background-color: #1e3a8a; color: white;">NRP</th>
-            <th style="background-color: #1e3a8a; color: white;">Nama Lengkap</th>
-            <th style="background-color: #1e3a8a; color: white;">Pangkat</th>
-            <th style="background-color: #1e3a8a; color: white;">Corps</th>
-            <th style="background-color: #1e3a8a; color: white;">Kehadiran</th>
-            <th style="background-color: #1e3a8a; color: white;">Keterangan</th>
-          </tr>
-        </thead>
-        <tbody>`;
-        
-      attendance.forEach(att => {
-        html += `<tr>
-          <td>${formatDateTime(att.timestamp)}</td>
-          <td>${att.nrp || '-'}</td>
-          <td>${att.nama}</td>
-          <td>${att.pangkat || '-'}</td>
-          <td>${att.corps || '-'}</td>
-          <td>${att.kehadiran}</td>
-          <td>${att.keterangan || '-'}</td>
-        </tr>`;
-      });
-      
-      html += `</tbody></table></body></html>`;
-      
-      const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Rekap_Absensi_Personel.xls';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    function exportResultsToExcel() {
-      const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
-      if (submissions.length === 0) return alert('Tidak ada hasil ujian untuk diexport.');
-      
-      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><meta charset="utf-8"></head>
-      <body>
-      <table border="1">
-        <thead>
-          <tr>
-            <th style="background-color: #1e3a8a; color: white;">NRP</th>
-            <th style="background-color: #1e3a8a; color: white;">Nama Lengkap</th>
-            <th style="background-color: #1e3a8a; color: white;">Pangkat</th>
-            <th style="background-color: #1e3a8a; color: white;">Corps</th>
-            <th style="background-color: #1e3a8a; color: white;">Kehadiran</th>
-            <th style="background-color: #1e3a8a; color: white;">Tanggal</th>
-            <th style="background-color: #1e3a8a; color: white;">Nilai</th>
-          </tr>
-        </thead>
-        <tbody>`;
-        
-      submissions.forEach(sub => {
-        html += `<tr>
-          <td>${sub.nis}</td>
-          <td>${sub.nama}</td>
-          <td>${sub.kelas}</td>
-          <td>${sub.jurusan}</td>
-          <td>${sub.kehadiran}</td>
-          <td>${formatDate(sub.tanggal)}</td>
-          <td>${sub.score}</td>
-        </tr>`;
-      });
-      
-      html += `</tbody></table></body></html>`;
-      
-      const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Rekap_Hasil_Ujian.xls';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    // ==========================================
-    // MANAGEMENT PERSONNEL DATABASE (CRUD)
-    // ==========================================
-
-    async function renderAdminPersonnel() {
-      const tbody = document.getElementById('adminPersonnelTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.5rem;">⏳ Memuat data personil...</td></tr>`;
-
-      const users = await fetchUsersOnline();
-      const students = users.filter(u => u.role === 'siswa');
-      tbody.innerHTML = '';
-
-      students.forEach(student => {
-        const profile = student.profile || {};
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${student.username}</strong></td>
-          <td><code>${student.password}</code></td>
-          <td>${profile.nama || '-'}</td>
-          <td>${profile.nrp || '-'}</td>
-          <td>${profile.pangkat || '-'}</td>
-          <td>${profile.corps || '-'}</td>
-          <td>
-            <div style="display: flex; gap: 0.25rem;">
-              <button class="btn btn-secondary" onclick="editPersonnel('${student.username}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Edit / Reset</button>
-              <button class="btn btn-danger" onclick="deletePersonnel('${student.username}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Hapus</button>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      if (students.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Belum ada akun personel terdaftar.</td></tr>`;
-      }
-    }
-
-    async function savePersonnel(event) {
-      event.preventDefault();
-      const idVal = document.getElementById('editPersId').value; // old username key
-      const usernameVal = document.getElementById('editPersUsername').value.trim();
-      const passwordVal = document.getElementById('editPersPassword').value.trim();
-      const namaVal = document.getElementById('editPersNama').value.trim();
-      const nrpVal = document.getElementById('editPersNrp').value.trim();
-      const pangkatVal = document.getElementById('editPersPangkat').value;
-      const corpsVal = document.getElementById('editPersCorps').value;
-
-      let users = await fetchUsersOnline();
-
-      // Check duplicates if username changes or new registration
-      if (idVal !== usernameVal) {
-        const userExists = users.some(u => u.username.toLowerCase() === usernameVal.toLowerCase());
-        if (userExists || usernameVal.toLowerCase() === 'siswa' || usernameVal.toLowerCase() === 'admin') {
-          alert('Username ini sudah terdaftar.');
-          return;
-        }
-      }
-
-      const profile = { nama: namaVal, nrp: nrpVal, pangkat: pangkatVal, corps: corpsVal };
-
-      if (idVal) {
-        // Update existing
-        users = users.map(u => u.username === idVal ? { role: 'siswa', username: usernameVal, password: passwordVal, profile } : u);
-      } else {
-        // Add new
-        users.push({ role: 'siswa', username: usernameVal, password: passwordVal, profile });
-      }
-
-      await saveUsersOnline(users);
-      cancelEditPersonnel();
-      await renderAdminPersonnel();
-    }
-
-    async function editPersonnel(username) {
-      const users = await fetchUsersOnline();
-      const user = users.find(u => u.username === username);
-      if (!user) return;
-
-      const profile = user.profile || {};
-      document.getElementById('editPersId').value = user.username;
-      document.getElementById('editPersUsername').value = user.username;
-      document.getElementById('editPersPassword').value = user.password;
-      document.getElementById('editPersNama').value = profile.nama || '';
-      document.getElementById('editPersNrp').value = profile.nrp || '';
-      document.getElementById('editPersPangkat').value = profile.pangkat || '';
-      document.getElementById('editPersCorps').value = profile.corps || '';
-
-      document.getElementById('btnCancelEditPers').style.display = 'inline-flex';
-      document.getElementById('submitPersBtnText').textContent = 'Simpan Perubahan';
-      
-      window.scrollTo({ top: document.getElementById('personnelForm').offsetTop - 20, behavior: 'smooth' });
-    }
-
-    function cancelEditPersonnel() {
-      document.getElementById('personnelForm').reset();
-      document.getElementById('editPersId').value = '';
-      document.getElementById('btnCancelEditPers').style.display = 'none';
-      document.getElementById('submitPersBtnText').textContent = 'Tambah Personel Baru';
-    }
-
-    async function deletePersonnel(username) {
-      if (!confirm(`Apakah Anda yakin ingin menghapus akun personel "${username}"?`)) return;
-      let users = await fetchUsersOnline();
-      users = users.filter(u => u.username !== username);
-      await saveUsersOnline(users);
-      await renderAdminPersonnel();
-    }
-
-    // ==========================================
-    // RINGKASAN - DAFTAR PERSONIL CARDS
-    // ==========================================
-
-    let _ringkasanAllPersonnel = []; // cache for filter
-
-    async function renderRingkasanPersonnel() {
-      const container = document.getElementById('ringkasanPersonnelList');
-      if (!container) return;
-      container.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:1rem;">⏳ Memuat...</div>`;
-
-      const users = await fetchUsersOnline();
-      const students = users.filter(u => u.role === 'siswa');
-      _ringkasanAllPersonnel = students;
-      renderPersonnelCards(students);
-    }
-
-    function renderPersonnelCards(students) {
-      const container = document.getElementById('ringkasanPersonnelList');
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (students.length === 0) {
-        container.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); padding:2rem; font-size:0.9rem;">Belum ada personil terdaftar.</div>`;
-        return;
-      }
-
-      students.forEach(student => {
-        const p = student.profile || {};
-        const initials = (p.nama || student.username || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-        const card = document.createElement('div');
-        card.style.cssText = `
-          background: #fff; border: 1.5px solid var(--border-color); border-radius: var(--radius-md);
-          padding: 1rem; cursor: pointer; transition: var(--transition);
-          display: flex; align-items: center; gap: 0.85rem;
-          box-shadow: var(--shadow-sm);
-        `;
-        card.onmouseenter = () => { card.style.borderColor = 'var(--primary)'; card.style.boxShadow = '0 4px 16px rgba(30,58,138,0.12)'; card.style.transform = 'translateY(-2px)'; };
-        card.onmouseleave = () => { card.style.borderColor = 'var(--border-color)'; card.style.boxShadow = 'var(--shadow-sm)'; card.style.transform = 'none'; };
-        card.onclick = () => openEditPersonnelModal(student.username);
-
-        // Foto dari profile.photo (sudah dikompres, bisa sync online)
-        const photo = p.photo || null;
-        card.innerHTML = `
-          <div style="width: 42px; height: 42px; min-width:42px; border-radius: 50%; overflow:hidden; flex-shrink:0; border: 2.5px solid var(--primary); box-shadow: 0 1px 4px rgba(30,58,138,0.15);">
-            ${photo
-              ? `<img src="${photo}" alt="foto" style="width:100%; height:100%; object-fit:cover;">`
-              : `<div style="width:100%; height:100%; background: linear-gradient(135deg, var(--primary), #2563eb); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:0.95rem; font-family:'Outfit',sans-serif;">${initials}</div>`
-            }
-          </div>
-          <div style="flex:1; min-width:0;">
-            <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.nama || '(nama belum diisi)'}</div>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top:1px;">@${student.username} ${p.nrp ? '· ' + p.nrp : ''}</div>
-            <div style="font-size: 0.75rem; color: var(--accent); margin-top:2px; font-weight:600;">${p.pangkat || ''} ${p.corps ? '· ' + p.corps : ''}</div>
-          </div>
-          <span style="font-size:1rem; color:var(--text-muted);">›</span>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function filterRingkasanPersonnel(query) {
-      const q = query.toLowerCase().trim();
-      if (!q) { renderPersonnelCards(_ringkasanAllPersonnel); return; }
-      const filtered = _ringkasanAllPersonnel.filter(s => {
-        const p = s.profile || {};
-        return (p.nama || '').toLowerCase().includes(q)
-          || (s.username || '').toLowerCase().includes(q)
-          || (p.nrp || '').toLowerCase().includes(q)
-          || (p.pangkat || '').toLowerCase().includes(q)
-          || (p.corps || '').toLowerCase().includes(q);
-      });
-      renderPersonnelCards(filtered);
-    }
-
-    // ==========================================
-    // MODAL EDIT PERSONEL (dari Ringkasan)
-    // ==========================================
-
-    async function openEditPersonnelModal(username) {
-      const users = await fetchUsersOnline();
-      const user = users.find(u => u.username === username);
-      if (!user) return;
-      const p = user.profile || {};
-
-      document.getElementById('modalPersOldUsername').value = user.username;
-      document.getElementById('modalPersUsername').value = user.username;
-      document.getElementById('modalPersNama').value = p.nama || '';
-      document.getElementById('modalPersNrp').value = p.nrp || '';
-      document.getElementById('modalPersPangkat').value = p.pangkat || '';
-      document.getElementById('modalPersCorps').value = p.corps || '';
-      document.getElementById('modalPersPassBaru').value = '';
-      document.getElementById('modalPersPassKonfirm').value = '';
-
-      const msgEl = document.getElementById('editPersModalMsg');
-      msgEl.style.display = 'none'; msgEl.textContent = '';
-
-      const modal = document.getElementById('modalEditPersonnel');
-      modal.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeEditPersonnelModal() {
-      document.getElementById('modalEditPersonnel').style.display = 'none';
-      document.body.style.overflow = '';
-    }
-
-    function handleModalBackdropClick(event) {
-      if (event.target === document.getElementById('modalEditPersonnel')) {
-        closeEditPersonnelModal();
-      }
-    }
-
-    async function saveEditedPersonnel(event) {
-      event.preventDefault();
-      const msgEl = document.getElementById('editPersModalMsg');
-
-      const oldUsername = document.getElementById('modalPersOldUsername').value;
-      const newUsername = document.getElementById('modalPersUsername').value.trim();
-      const nama = document.getElementById('modalPersNama').value.trim();
-      const nrp = document.getElementById('modalPersNrp').value.trim();
-      const pangkat = document.getElementById('modalPersPangkat').value;
-      const corps = document.getElementById('modalPersCorps').value;
-      const passBaru = document.getElementById('modalPersPassBaru').value;
-      const passKonfirm = document.getElementById('modalPersPassKonfirm').value;
-
-      if (!nama) {
-        msgEl.textContent = '❌ Nama tidak boleh kosong.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
-      }
-      if (passBaru && passBaru.length < 4) {
-        msgEl.textContent = '❌ Password baru minimal 4 karakter.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
-      }
-      if (passBaru && passBaru !== passKonfirm) {
-        msgEl.textContent = '❌ Konfirmasi password tidak cocok.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
-      }
-
-      let users = await fetchUsersOnline();
-
-      // Check username conflict (if changed)
-      if (newUsername !== oldUsername) {
-        const taken = users.some(u => u.username.toLowerCase() === newUsername.toLowerCase());
-        if (taken || newUsername.toLowerCase() === 'siswa' || newUsername.toLowerCase() === 'admin') {
-          msgEl.textContent = '❌ Username sudah digunakan akun lain.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
-        }
-      }
-
-      users = users.map(u => {
-        if (u.username !== oldUsername) return u;
-        const updatedUser = { ...u, username: newUsername, profile: { nama, nrp, pangkat, corps } };
-        if (passBaru) updatedUser.password = passBaru;
-        return updatedUser;
-      });
-
-      await saveUsersOnline(users);
-
-      msgEl.textContent = '✅ Data personel berhasil diperbarui!'; msgEl.style.color='var(--success)'; msgEl.style.background='#f0fdf4'; msgEl.style.display='block';
-
-      // Refresh both lists
-      await renderRingkasanPersonnel();
-      const statEl = document.getElementById('statPersonnel');
-      if (statEl) statEl.textContent = users.filter(u => u.role === 'siswa').length;
-
-      setTimeout(() => closeEditPersonnelModal(), 1600);
-    }
-
-    async function deletePersonnelFromModal() {
-      const username = document.getElementById('modalPersOldUsername').value;
-      if (!confirm(`Hapus permanen akun personel "${username}"? Tindakan ini tidak dapat dibatalkan.`)) return;
-
-      let users = await fetchUsersOnline();
-      users = users.filter(u => u.username !== username);
-      await saveUsersOnline(users);
-
-      closeEditPersonnelModal();
-      await renderRingkasanPersonnel();
-      const statEl = document.getElementById('statPersonnel');
-      if (statEl) statEl.textContent = users.filter(u => u.role === 'siswa').length;
-    }
-
-    // ==========================================
-    // EXPORT & IMPORT PERSONNEL DATABASE
-    // ==========================================
-
-    function exportPersonnelToWord() {
-      const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const students = users.filter(u => u.role === 'siswa');
-      if (students.length === 0) return alert('Tidak ada data personel untuk diexport.');
-      
-      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><title>Daftar Personel</title><style>body {font-family: Arial;} table {border-collapse: collapse; width: 100%;} th, td {border: 1px solid black; padding: 8px;}</style></head>
-      <body>
-      <h2>DAFTAR AKUN PERSONEL TERDAFTAR</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Kata Sandi</th>
-            <th>Nama Lengkap</th>
-            <th>NRP</th>
-            <th>Pangkat</th>
-            <th>Corps</th>
-          </tr>
-        </thead>
-        <tbody>`;
-        
-      students.forEach(student => {
-        const profile = student.profile || {};
-        html += `<tr>
-          <td>${student.username}</td>
-          <td>${student.password}</td>
-          <td>${profile.nama || '-'}</td>
-          <td>${profile.nrp || '-'}</td>
-          <td>${profile.pangkat || '-'}</td>
-          <td>${profile.corps || '-'}</td>
-        </tr>`;
-      });
-      
-      html += `</tbody></table></body></html>`;
-      
-      const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Daftar_Akun_Personel.doc';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    function exportPersonnelToExcel() {
-      const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const students = users.filter(u => u.role === 'siswa');
-      if (students.length === 0) return alert('Tidak ada data personel untuk diexport.');
-      
-      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><meta charset="utf-8"></head>
-      <body>
-      <table border="1">
-        <thead>
-          <tr>
-            <th style="background-color: #1e3a8a; color: white;">Username</th>
-            <th style="background-color: #1e3a8a; color: white;">Kata Sandi</th>
-            <th style="background-color: #1e3a8a; color: white;">Nama Lengkap</th>
-            <th style="background-color: #1e3a8a; color: white;">NRP</th>
-            <th style="background-color: #1e3a8a; color: white;">Pangkat</th>
-            <th style="background-color: #1e3a8a; color: white;">Corps</th>
-          </tr>
-        </thead>
-        <tbody>`;
-        
-      students.forEach(student => {
-        const profile = student.profile || {};
-        html += `<tr>
-          <td>${student.username}</td>
-          <td>${student.password}</td>
-          <td>${profile.nama || '-'}</td>
-          <td>${profile.nrp || '-'}</td>
-          <td>${profile.pangkat || '-'}</td>
-          <td>${profile.corps || '-'}</td>
-        </tr>`;
-      });
-      
-      html += `</tbody></table></body></html>`;
-      
-      const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Daftar_Akun_Personel.xls';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    function importPersonnel(input) {
-      const file = input.files[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const text = e.target.result;
-        const lines = text.split('\n');
-        let users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-        let importedCount = 0;
-        
-        lines.forEach(line => {
-          if (!line.trim()) return;
-          const parts = line.split('|');
-          if (parts.length >= 6) {
-            const usernameVal = parts[0].trim();
-            const passwordVal = parts[1].trim();
-            const namaVal = parts[2].trim();
-            const nrpVal = parts[3].trim();
-            const pangkatVal = parts[4].trim();
-            const corpsVal = parts[5].trim();
-            
-            if (usernameVal && passwordVal) {
-              // Check duplicates
-              const exists = users.some(u => u.username.toLowerCase() === usernameVal.toLowerCase());
-              if (!exists) {
-                const profile = { nama: namaVal, nrp: nrpVal, pangkat: pangkatVal, corps: corpsVal };
-                users.push({ role: 'siswa', username: usernameVal, password: passwordVal, profile });
-                importedCount++;
-              }
-            }
-          }
-        });
-        
-        if (importedCount > 0) {
-          localStorage.setItem('registeredUsers', JSON.stringify(users));
-          renderAdminPersonnel();
-          showNotification(`Berhasil mengimpor ${importedCount} akun personel baru.`, "success");
-        } else {
-          showNotification('Gagal mengimpor. Pastikan format berkas menggunakan pemisah pipa.', "error");
-        }
-        input.value = '';
-      };
-      reader.readAsText(file);
-    }
+
+    function showLoading(text = 'Memproses data...') {
+      const overlay = document.getElementById('loadingOverlay');
+      const textEl = document.getElementById('loadingText');
+      if(overlay && textEl) {
+        overlay.style.display = 'flex';
+        let progress = 0;
+        textEl.innerText = `${text} ${progress}%`;
+        
+        window._loadingInterval = setInterval(() => {
+          progress += Math.floor(Math.random() * 20) + 10;
+          if(progress > 95) progress = 95;
+          textEl.innerText = `${text} ${progress}%`;
+        }, 100);
+      }
+    }
+
+    function hideLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      const textEl = document.getElementById('loadingText');
+      if(overlay) {
+        clearInterval(window._loadingInterval);
+        if(textEl) textEl.innerText = 'Selesai 100%';
+        setTimeout(() => { overlay.style.display = 'none'; }, 300);
+      }
+    }
+
+    function showNotification(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast-msg toast-${type}`;
+      
+      let icon = 'ℹ️';
+      if(type === 'success') icon = '✅';
+      else if(type === 'error') icon = '⚠️';
+      
+      toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        if(container.contains(toast)) {
+          toast.remove();
+        }
+      }, 3300);
+    }
+
+    // State
+    let currentRole = null; // 'siswa' or 'admin'
+    let currentLoginTab = 'siswa';
+
+    // Database Google Sheets Web App REST API (with LocalStorage fallback)
+    function getScriptUrl() {
+      return localStorage.getItem('google_sheets_api_url') || "https://script.google.com/macros/s/AKfycbzCHBJTp5m4eEaN8pldyZTo1-xstFSMPJMGy8sHePjUvK8wicucWwU95SbgNuNA9pPxiQ/exec";
+    }
+
+    async function fetchQuestionsOnline() {
+      const url = getScriptUrl();
+      if (!url) {
+        try {
+          const localData = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+          if (Array.isArray(localData)) {
+            const validLocal = localData.filter(q => q && typeof q === 'object' && q.id);
+            if (validLocal.length > 0) return validLocal;
+          }
+        } catch(err) {}
+        localStorage.setItem('exam_questions', JSON.stringify([]));
+        return [];
+      }
+      try {
+        const response = await fetch(url + "?action=getQuestions");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const qList = await response.json();
+        if (Array.isArray(qList)) {
+          const validQs = qList.filter(q => q && typeof q === 'object' && q.id);
+          if (validQs.length > 0) {
+            localStorage.setItem('exam_questions', JSON.stringify(validQs));
+            return validQs;
+          }
+        }
+        await saveQuestionsOnline([]);
+        return [];
+      } catch (e) {
+        console.error("Error fetching questions online:", e);
+        try {
+          const localData = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+          if (Array.isArray(localData)) {
+            const validLocal = localData.filter(q => q && typeof q === 'object' && q.id);
+            if (validLocal.length > 0) return validLocal;
+          }
+        } catch(err) {}
+        localStorage.setItem('exam_questions', JSON.stringify([]));
+        return [];
+      }
+    }
+
+    async function saveQuestionsOnline(questions) {
+      localStorage.setItem('exam_questions', JSON.stringify(questions));
+      const url = getScriptUrl();
+      if (!url) return;
+      try {
+        const response = await fetch(url + "?action=saveQuestions", {
+          method: 'POST',
+          body: JSON.stringify(questions)
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } catch(e) {
+        console.error("Error saving questions online:", e);
+      }
+    }
+
+    async function fetchUsersOnline() {
+      const url = getScriptUrl();
+      if (!url) {
+        try {
+          const localData = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(u => u && typeof u === 'object' && u.username);
+          }
+        } catch(err) {}
+        localStorage.setItem('registeredUsers', JSON.stringify([]));
+        return [];
+      }
+      try {
+        const response = await fetch(url + "?action=getUsers");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const userList = await response.json();
+        if (Array.isArray(userList)) {
+          const validUsers = userList.filter(u => u && typeof u === 'object' && u.username);
+          localStorage.setItem('registeredUsers', JSON.stringify(validUsers));
+          return validUsers;
+        }
+        throw new Error("Invalid or empty data from server");
+      } catch (e) {
+        console.error("Error fetching users online:", e);
+        try {
+          const localData = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(u => u && typeof u === 'object' && u.username);
+          }
+        } catch(err) {
+          console.error("Local storage corrupted, resetting:", err);
+        }
+        localStorage.setItem('registeredUsers', JSON.stringify([]));
+        return [];
+      }
+    }
+
+    async function saveUsersOnline(users) {
+      showLoading("Menyimpan data personel...");
+      localStorage.setItem('registeredUsers', JSON.stringify(users));
+      const url = getScriptUrl();
+      if (!url) return;
+      try {
+        const response = await fetch(url + "?action=saveUsers", {
+          method: 'POST',
+          body: JSON.stringify(users)
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } catch(e) {
+        console.error("Error saving users online:", e);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // Kompres gambar ke thumbnail kecil (max 150px, JPEG quality 0.6) → base64 ~5-10KB
+    function compressImage(file, maxSize, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onerror = reject;
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+            else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function fetchSubmissionsOnline() {
+      const url = getScriptUrl();
+      if (!url) {
+        try {
+          const localData = JSON.parse(localStorage.getItem('submissions') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(s => s && typeof s === 'object' && s.username);
+          }
+        } catch(err) {}
+        localStorage.setItem('submissions', JSON.stringify([]));
+        return [];
+      }
+      try {
+        const response = await fetch(url + "?action=getSubmissions");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const subList = await response.json();
+        if (Array.isArray(subList)) {
+          const validSubs = subList.filter(s => s && typeof s === 'object' && s.username);
+          localStorage.setItem('submissions', JSON.stringify(validSubs));
+          return validSubs;
+        }
+        throw new Error("Invalid data");
+      } catch(e) {
+        console.error("Error fetching submissions online:", e);
+        try {
+          const localData = JSON.parse(localStorage.getItem('submissions') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(s => s && typeof s === 'object' && s.username);
+          }
+        } catch(err) {}
+        localStorage.setItem('submissions', JSON.stringify([]));
+        return [];
+      }
+    }
+
+    async function saveSubmissionsOnline(submissions) {
+      showLoading("Menyimpan jawaban ujian...");
+      localStorage.setItem('submissions', JSON.stringify(submissions));
+      const url = getScriptUrl();
+      if (!url) return;
+      try {
+        const response = await fetch(url + "?action=saveSubmissions", {
+          method: 'POST',
+          body: JSON.stringify(submissions)
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } catch(e) {
+        console.error("Error saving submissions online:", e);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function fetchAttendanceOnline() {
+      const url = getScriptUrl();
+      if (!url) {
+        try {
+          const localData = JSON.parse(localStorage.getItem('attendance') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(a => a && typeof a === 'object' && a.username);
+          }
+        } catch(err) {}
+        localStorage.setItem('attendance', JSON.stringify([]));
+        return [];
+      }
+      try {
+        const response = await fetch(url + "?action=getAttendance");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const attList = await response.json();
+        if (Array.isArray(attList)) {
+          const validAtt = attList.filter(a => a && typeof a === 'object' && a.username);
+          localStorage.setItem('attendance', JSON.stringify(validAtt));
+          return validAtt;
+        }
+        throw new Error("Invalid attendance data");
+      } catch(e) {
+        console.error("Error fetching attendance online:", e);
+        try {
+          const localData = JSON.parse(localStorage.getItem('attendance') || '[]');
+          if (Array.isArray(localData)) {
+            return localData.filter(a => a && typeof a === 'object' && a.username);
+          }
+        } catch(err) {}
+        localStorage.setItem('attendance', JSON.stringify([]));
+        return [];
+      }
+    }
+
+    async function saveAttendanceOnline(attendance) {
+      showLoading("Menyimpan absensi...");
+      localStorage.setItem('attendance', JSON.stringify(attendance));
+      const url = getScriptUrl();
+      if (!url) return;
+      try {
+        const response = await fetch(url + "?action=saveAttendance", {
+          method: 'POST',
+          body: JSON.stringify(attendance)
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } catch(e) {
+        console.error("Error saving attendance online:", e);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // Default mock questions to seed localStorage on first load
+
+    // UI Settings Logic
+    function loadUISettings() {
+      try {
+        const settings = JSON.parse(localStorage.getItem('uiSettings'));
+        if (settings) {
+          // Apply Texts
+          const headerTitleEls = document.querySelectorAll('header h1, .login-header h1');
+          headerTitleEls.forEach(el => {
+            if (settings.portalTitle) el.innerText = settings.portalTitle;
+          });
+          
+          const headerSubtitleEls = document.querySelectorAll('header p, .login-header p');
+          headerSubtitleEls.forEach(el => {
+            if (settings.portalSubtitle) el.innerText = settings.portalSubtitle;
+          });
+
+          // Apply Colors
+          if (settings.bgColorStart && settings.bgColorEnd) {
+            document.body.style.background = `linear-gradient(135deg, ${settings.bgColorStart} 0%, ${settings.bgColorEnd} 100%)`;
+          }
+        }
+      } catch(e) {
+        console.error("Gagal load UI Settings", e);
+      }
+    }
+
+    function populateAdminUIForm() {
+      try {
+        const sched = JSON.parse(localStorage.getItem('examSchedule'));
+        if(sched) {
+          if(document.getElementById('examStartTime')) document.getElementById('examStartTime').value = sched.startTime || '';
+          if(document.getElementById('examEndTime')) document.getElementById('examEndTime').value = sched.endTime || '';
+          if(document.getElementById('examOverride')) document.getElementById('examOverride').checked = sched.overrideOpen || false;
+        }
+
+        const settings = JSON.parse(localStorage.getItem('uiSettings'));
+        if (settings) {
+          if(document.getElementById('uiPortalTitle')) document.getElementById('uiPortalTitle').value = settings.portalTitle || '';
+          if(document.getElementById('uiPortalSubtitle')) document.getElementById('uiPortalSubtitle').value = settings.portalSubtitle || '';
+          if(document.getElementById('uiBgColorStart')) document.getElementById('uiBgColorStart').value = settings.bgColorStart || '#e2e8f0';
+          if(document.getElementById('uiBgColorEnd')) document.getElementById('uiBgColorEnd').value = settings.bgColorEnd || '#cbd5e1';
+        }
+      } catch(e) { }
+    }
+
+    function saveExamSchedule() {
+      const sched = {
+        startTime: document.getElementById('examStartTime').value,
+        endTime: document.getElementById('examEndTime').value,
+        overrideOpen: document.getElementById('examOverride').checked
+      };
+      localStorage.setItem('examSchedule', JSON.stringify(sched));
+      showNotification("Jadwal ujian diperbarui.", "success");
+    }
+
+    function saveUISettings() {
+      const settings = {
+        portalTitle: document.getElementById('uiPortalTitle').value,
+        portalSubtitle: document.getElementById('uiPortalSubtitle').value,
+        bgColorStart: document.getElementById('uiBgColorStart').value,
+        bgColorEnd: document.getElementById('uiBgColorEnd').value
+      };
+      localStorage.setItem('uiSettings', JSON.stringify(settings));
+      loadUISettings();
+      showNotification("Pengaturan Tampilan berhasil disimpan!", "success");
+    }
+
+    function resetUISettings() {
+      if(confirm("Anda yakin ingin mengembalikan tampilan ke awal?")) {
+        localStorage.removeItem('uiSettings');
+        document.body.style.background = 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)';
+        
+        const headerTitleEls = document.querySelectorAll('header h1, .login-header h1');
+        headerTitleEls.forEach(el => el.innerText = 'Portal Evaluasi & Ujian');
+        
+        const headerSubtitleEls = document.querySelectorAll('header p, .login-header p');
+        headerSubtitleEls.forEach(el => el.innerText = 'Silakan masuk ke dalam sistem menggunakan akun Anda');
+        
+        if(document.getElementById('uiPortalTitle')) document.getElementById('uiPortalTitle').value = '';
+        if(document.getElementById('uiPortalSubtitle')) document.getElementById('uiPortalSubtitle').value = '';
+        if(document.getElementById('uiBgColorStart')) document.getElementById('uiBgColorStart').value = '#e2e8f0';
+        if(document.getElementById('uiBgColorEnd')) document.getElementById('uiBgColorEnd').value = '#cbd5e1';
+        
+        showNotification("Pengaturan dikembalikan ke awal!", "info");
+      }
+    }
+
+    // Initialize Page
+    document.addEventListener("DOMContentLoaded", () => {
+      loadUISettings();
+      populateAdminUIForm();
+      // Ensure default mock questions are completely purged from old memory
+      try {
+        let existingQ = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+        if (existingQ.length > 0) {
+          existingQ = existingQ.filter(q => {
+            const isMock = (q.id === 1 && q.text.includes('Pancasila')) ||
+                           (q.id === 2 && q.text.includes('Indonesia Raya')) ||
+                           (q.id === 3 && q.text.includes('15 + 3 x 4')) ||
+                           (q.id === 4 && q.text.includes('Planet Merah')) ||
+                           (q.id === 5 && q.text.includes('apotek'));
+            return !isMock;
+          });
+          localStorage.setItem('exam_questions', JSON.stringify(existingQ));
+        }
+      } catch(e) {}
+
+      // Seed default data if completely empty
+      if (!localStorage.getItem('exam_questions')) {
+        localStorage.setItem('exam_questions', JSON.stringify([]));
+      }
+
+      // Fetch online data to sync local storage on load (in background)
+      fetchQuestionsOnline();
+      fetchUsersOnline();
+      fetchSubmissionsOnline();
+      fetchAttendanceOnline();
+
+      // Check active session if page refreshed
+      const savedRole = sessionStorage.getItem('activeRole');
+      const savedUser = sessionStorage.getItem('activeUsername');
+      if (savedRole && savedUser) {
+        const roleLabel = savedRole === 'admin' ? 'Operator / Admin' : 'Personel / Siswa';
+        const savedProfileStr = sessionStorage.getItem('activeProfile');
+        let profile = {};
+        if (savedProfileStr) {
+          try {
+            profile = JSON.parse(savedProfileStr);
+          } catch(e) {}
+        }
+        loginSuccess(savedRole, roleLabel, savedUser, profile);
+      }
+      
+      // Auto dates
+      setTodayDate();
+
+      // Check Google Sheets Status
+      checkGoogleSheetsStatus();
+    });
+
+    function setTodayDate() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      let mm = today.getMonth() + 1;
+      let dd = today.getDate();
+      if (dd < 10) dd = '0' + dd;
+      if (mm < 10) mm = '0' + mm;
+      const formattedToday = yyyy + '-' + mm + '-' + dd;
+      const dateEl = document.getElementById('tanggal');
+      if (dateEl) dateEl.value = formattedToday;
+    }
+
+    // Google Sheets Config Helpers
+    function saveGoogleSheetsConfig() {
+      const url = document.getElementById('googleSheetsApiUrl').value.trim();
+      const statusMsg = document.getElementById('sheetsStatusMessage');
+      
+      if (!url) {
+        statusMsg.textContent = "❌ Harap masukkan URL Web App yang valid.";
+        statusMsg.style.color = "var(--error)";
+        return;
+      }
+      
+      if (!url.startsWith("https://script.google.com/")) {
+        statusMsg.textContent = "❌ URL harus berawalan dari Google Script (https://script.google.com/)";
+        statusMsg.style.color = "var(--error)";
+        return;
+      }
+      
+      localStorage.setItem('google_sheets_api_url', url);
+      statusMsg.textContent = "⏳ Mencoba menghubungkan ke Google Sheets...";
+      statusMsg.style.color = "var(--text-muted)";
+      
+      // Test the URL connection by fetching users
+      fetch(url + "?action=getUsers")
+        .then(res => {
+          if (res.ok) {
+            statusMsg.textContent = "✅ Sukses terhubung ke Google Sheets! Sinkronisasi aktif.";
+            statusMsg.style.color = "var(--success)";
+            document.getElementById('disconnectSheetsBtn').style.display = 'inline-block';
+            // Sync all database data immediately
+            setTimeout(() => {
+              location.reload();
+            }, 1500);
+          } else {
+            throw new Error();
+          }
+        })
+        .catch(err => {
+          statusMsg.textContent = "⚠️ Gagal terhubung. Pastikan Web App Anda di-deploy dengan akses 'Anyone'.";
+          statusMsg.style.color = "var(--error)";
+        });
+    }
+
+    function disconnectGoogleSheets() {
+      localStorage.removeItem('google_sheets_api_url');
+      document.getElementById('googleSheetsApiUrl').value = "";
+      document.getElementById('disconnectSheetsBtn').style.display = 'none';
+      const statusMsg = document.getElementById('sheetsStatusMessage');
+      statusMsg.textContent = "🔌 Sinkronisasi dinonaktifkan. Menggunakan penyimpanan lokal browser (LocalStorage).";
+      statusMsg.style.color = "var(--text-muted)";
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    }
+
+    function checkGoogleSheetsStatus() {
+      const url = localStorage.getItem('google_sheets_api_url');
+      const inputEl = document.getElementById('googleSheetsApiUrl');
+      const disBtn = document.getElementById('disconnectSheetsBtn');
+      const statusMsg = document.getElementById('sheetsStatusMessage');
+      
+      if (url && inputEl && disBtn && statusMsg) {
+        inputEl.value = url;
+        disBtn.style.display = 'inline-block';
+        statusMsg.textContent = "✅ Terhubung ke Google Sheets (Sinkronisasi Aktif)";
+        statusMsg.style.color = "var(--success)";
+      }
+    }
+
+    // Switch Login Tabs
+    function switchLoginTab(role) {
+      currentLoginTab = role;
+      document.getElementById('loginErrorBox').style.display = 'none';
+      document.getElementById('registerSuccessBox').style.display = 'none';
+      const btns = document.querySelectorAll('.login-tab-btn');
+      btns.forEach(btn => btn.classList.remove('active'));
+      
+      const form = document.getElementById('loginForm');
+      form.reset();
+
+      if (role === 'siswa') {
+        btns[0].classList.add('active');
+        document.getElementById('loginHint').innerHTML = 'Hint: gunakan <strong>siswa</strong> atau akun baru';
+        document.getElementById('loginPassHint').innerHTML = 'Hint: gunakan <strong>siswa123</strong> atau password baru';
+      } else {
+        btns[1].classList.add('active');
+        document.getElementById('loginHint').innerHTML = 'Hint: gunakan <strong>admin</strong> atau akun baru';
+        document.getElementById('loginPassHint').innerHTML = 'Hint: gunakan <strong>admin123</strong> atau password baru';
+      }
+    }
+
+    // Toggle registration fields based on role
+    function toggleRegRoleFields(role) {
+      const regSiswaFields = document.getElementById('regSiswaFields');
+      if (role === 'siswa') {
+        regSiswaFields.style.display = 'block';
+        document.getElementById('regNama').required = true;
+        document.getElementById('regNrp').required = true;
+        document.getElementById('regPangkat').required = true;
+        document.getElementById('regCorps').required = true;
+      } else {
+        regSiswaFields.style.display = 'none';
+        document.getElementById('regNama').required = false;
+        document.getElementById('regNrp').required = false;
+        document.getElementById('regPangkat').required = false;
+        document.getElementById('regCorps').required = false;
+      }
+    }
+
+    // Toggle login/register forms
+    function showRegisterForm(show) {
+      document.getElementById('loginErrorBox').style.display = 'none';
+      document.getElementById('registerSuccessBox').style.display = 'none';
+      
+      if (show) {
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('loginTabsHeader').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+        document.querySelector('.login-header p').textContent = 'Daftar akun baru';
+        
+        // Match registration role with active login tab
+        document.getElementById('regRole').value = currentLoginTab;
+        toggleRegRoleFields(currentLoginTab);
+      } else {
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('loginTabsHeader').style.display = 'flex';
+        document.getElementById('registerForm').style.display = 'none';
+        
+        try {
+          const settings = JSON.parse(localStorage.getItem('uiSettings'));
+          document.querySelector('.login-header p').textContent = settings?.portalSubtitle ? settings.portalSubtitle : 'Silakan masuk ke dalam sistem menggunakan akun Anda';
+        } catch(e) {
+          document.querySelector('.login-header p').textContent = 'Silakan masuk ke dalam sistem menggunakan akun Anda';
+        }
+        
+        switchLoginTab(currentLoginTab);
+      }
+    }
+
+    // Handle User Registration
+    async function handleRegister(event) {
+      event.preventDefault();
+      const role = document.getElementById('regRole').value;
+      const username = document.getElementById('regUsername').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const errorBox = document.getElementById('loginErrorBox');
+      const successBox = document.getElementById('registerSuccessBox');
+
+      errorBox.style.display = 'none';
+      successBox.style.display = 'none';
+
+      if (username.length < 3) {
+        errorBox.querySelector('span').textContent = 'Username minimal 3 karakter.';
+        errorBox.style.display = 'flex';
+        return;
+      }
+      if (password.length < 4) {
+        errorBox.querySelector('span').textContent = 'Password minimal 4 karakter.';
+        errorBox.style.display = 'flex';
+        return;
+      }
+
+      // Read profile data if siswa
+      let profile = {};
+      if (role === 'siswa') {
+        const nama = document.getElementById('regNama').value.trim();
+        const nrp = document.getElementById('regNrp').value.trim();
+        const pangkat = document.getElementById('regPangkat').value;
+        const corps = document.getElementById('regCorps').value;
+
+        if (!nama || !nrp || !pangkat || !corps) {
+          errorBox.querySelector('span').textContent = 'Harap isi semua kolom identitas personel.';
+          errorBox.style.display = 'flex';
+          return;
+        }
+        profile = { nama, nrp, pangkat, corps };
+      }
+
+      // Check username duplicate in localStorage
+      const users = await fetchUsersOnline();
+      const userExists = users.some(u => u.username.toLowerCase() === username.toLowerCase());
+
+      if (userExists || username.toLowerCase() === 'siswa' || username.toLowerCase() === 'admin') {
+        errorBox.querySelector('span').textContent = 'Username ini sudah terdaftar.';
+        errorBox.style.display = 'flex';
+        return;
+      }
+
+      const newUser = { role, username, password, profile };
+      users.push(newUser);
+      await saveUsersOnline(users);
+
+      // Clear Form and redirect to login
+      document.getElementById('registerForm').reset();
+      showRegisterForm(false);
+      
+      document.getElementById('registerSuccessMsg').textContent = `Akun "${username}" (${role === 'admin' ? 'Operator' : 'Personel'}) berhasil dibuat!`;
+      document.getElementById('registerSuccessBox').style.display = 'flex';
+    }
+
+    // Handle Login authentication
+    async function handleLogin(event) {
+      event.preventDefault();
+      const userVal = document.getElementById('username').value.trim();
+      const passVal = document.getElementById('password').value;
+      const errorBox = document.getElementById('loginErrorBox');
+      const successBox = document.getElementById('registerSuccessBox');
+
+      errorBox.style.display = 'none';
+      successBox.style.display = 'none';
+
+      // 1. Check custom database online
+      const users = await fetchUsersOnline();
+      const customUser = users.find(u => u.username.toLowerCase() === userVal.toLowerCase() && u.password === passVal);
+
+      if (customUser) {
+        if (customUser.role === currentLoginTab) {
+          const roleLabel = customUser.role === 'admin' ? 'Operator / Admin' : 'Personel / Siswa';
+          loginSuccess(customUser.role, roleLabel, customUser.username, customUser.profile);
+          return;
+        } else {
+          errorBox.querySelector('span').textContent = `Akun terdaftar sebagai ${customUser.role === 'admin' ? 'Operator' : 'Personel'}. Harap ganti tab login di atas.`;
+          errorBox.style.display = 'flex';
+          return;
+        }
+      }
+
+      // 2. Check defaults
+      if (currentLoginTab === 'siswa') {
+        if (userVal === 'siswa' && passVal === 'siswa123') {
+          // default student fallback profile
+          const defaultProfile = { nama: 'Siswa Cadangan', nrp: '000000', pangkat: 'Letda', corps: 'Infanteri (Inf)' };
+          loginSuccess('siswa', 'Personel / Siswa', 'siswa', defaultProfile);
+        } else {
+          errorBox.querySelector('span').textContent = 'Username atau Password salah.';
+          errorBox.style.display = 'flex';
+        }
+      } else if (currentLoginTab === 'admin') {
+        if (userVal === 'admin' && passVal === 'admin123') {
+          loginSuccess('admin', 'Operator / Admin', 'admin', {});
+        } else {
+          errorBox.querySelector('span').textContent = 'Username atau Password salah.';
+          errorBox.style.display = 'flex';
+        }
+      }
+    }
+
+    function loginSuccess(role, roleLabel, username, profile) {
+      currentRole = role;
+      sessionStorage.setItem('activeRole', role);
+      sessionStorage.setItem('activeUsername', username);
+      if (profile && Object.keys(profile).length > 0) {
+        sessionStorage.setItem('activeProfile', JSON.stringify(profile));
+      }
+      
+      document.getElementById('loginPortal').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      
+      document.getElementById('navUsername').textContent = username;
+      document.getElementById('navRole').textContent = roleLabel;
+      
+      showPanelForRole(role);
+    }
+
+    async function showPanelForRole(role) {
+      const studentPortal = document.getElementById('studentPortal');
+      const adminPortal = document.getElementById('adminPortal');
+
+      if (role === 'siswa') {
+        studentPortal.style.display = 'block';
+        adminPortal.style.display = 'none';
+        
+        loadStudentProfile();
+        backToStudentMenu();
+      } else {
+        studentPortal.style.display = 'none';
+        adminPortal.style.display = 'block';
+        
+        startAdminPolling();
+        await switchAdminTab('ringkasan');
+      }
+    }
+
+    async function switchAdminTab(tabName) {
+      const tabs = ['ringkasan', 'soal', 'personel', 'absensi', 'hasil', 'sync', 'tampilan'];
+      tabs.forEach(t => {
+        const el = document.getElementById('adminTab_' + t);
+        if (el) el.style.display = 'none';
+      });
+
+      const selectedEl = document.getElementById('adminTab_' + tabName);
+      if (selectedEl) selectedEl.style.display = 'block';
+
+      const buttons = document.querySelectorAll('.admin-tab-btn');
+      buttons.forEach(btn => {
+        btn.style.background = '#f1f5f9';
+        btn.style.color = 'var(--text-main)';
+        btn.style.borderColor = 'var(--border-color)';
+      });
+
+      const activeBtn = document.getElementById('btnTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+      if (activeBtn) {
+        activeBtn.style.background = 'var(--primary)';
+        activeBtn.style.color = '#ffffff';
+        activeBtn.style.borderColor = 'var(--primary)';
+      }
+
+      // Refresh data setiap kali tab dibuka (agar selalu sinkron)
+      try {
+        if (tabName === 'personel') {
+          await renderAdminPersonnel();
+        } else if (tabName === 'ringkasan' || tabName === 'hasil') {
+          await loadAdminDashboard();
+        } else if (tabName === 'absensi') {
+          await loadAdminAttendance();
+        } else if (tabName === 'soal') {
+          await fetchQuestionsOnline();
+          renderAdminQuestions();
+        }
+      } catch(e) { console.error('Tab refresh error:', e); }
+    }
+
+    async function loadStudentProfile() {
+      const activeUser = sessionStorage.getItem('activeUsername');
+      const savedProfileStr = sessionStorage.getItem('activeProfile');
+      let profile = {};
+      if (savedProfileStr) {
+        try { profile = JSON.parse(savedProfileStr); } catch(e) {}
+      }
+      
+      try {
+        const attendances = await fetchAttendanceOnline();
+        const todayStr = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Jakarta" }).substring(0, 10);
+        const hasAbsented = attendances.find(a => a.username === activeUser && String(a.timestamp).substring(0, 10) === todayStr);
+        const btnAbsen = document.querySelector('#studentMenuGrid .stat-card:first-child .btn');
+        const cardAbsen = document.querySelector('#studentMenuGrid .stat-card:first-child');
+        
+        if (hasAbsented && btnAbsen && cardAbsen) {
+          btnAbsen.textContent = 'ANDA SUDAH ABSEN';
+          btnAbsen.style.backgroundColor = '#94a3b8';
+          cardAbsen.onclick = (e) => {
+             e.preventDefault();
+             e.stopPropagation();
+             alert(`Anda telah melakukan absensi pada ${new Date(hasAbsented.timestamp).toLocaleString('id-ID')} WIB.`);
+          };
+        }
+      } catch (e) { console.error('Gagal mengecek absensi:', e); }
+      
+      document.getElementById('profNama').textContent = profile.nama || activeUser || '-';
+      document.getElementById('profNrp').textContent = profile.nrp || '-';
+      document.getElementById('profPangkat').textContent = profile.pangkat || '-';
+      document.getElementById('profCorps').textContent = profile.corps || '-';
+
+      // Handle avatar foto/inisial
+      const photo = profile.photo || null;
+      const photoEl = document.getElementById('profPhoto');
+      const initialsEl = document.getElementById('profInitials');
+      if (photo) {
+        photoEl.src = photo;
+        photoEl.style.display = 'block';
+        initialsEl.style.display = 'none';
+      } else {
+        photoEl.style.display = 'none';
+        initialsEl.style.display = 'flex';
+        const name = profile.nama || activeUser || '?';
+        initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+      }
+    }
+
+    function openEditProfile() {
+      const panel = document.getElementById('editProfilePanel');
+      const msgEl = document.getElementById('editProfileMsg');
+
+      // Populate current values
+      const savedProfileStr = sessionStorage.getItem('activeProfile');
+      let profile = {};
+      try { profile = JSON.parse(savedProfileStr || '{}'); } catch(e) {}
+
+      document.getElementById('editProfNama').value = profile.nama || '';
+      document.getElementById('editProfNrp').value = profile.nrp || '';
+      document.getElementById('editProfPangkat').value = profile.pangkat || '';
+      document.getElementById('editProfCorps').value = profile.corps || '';
+      document.getElementById('editProfPassBaru').value = '';
+      document.getElementById('editProfPassKonfirm').value = '';
+      if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
+
+      // Populate photo preview dari profile.photo
+      const photo = profile.photo || null;
+      const preview = document.getElementById('editProfPhotoPreview');
+      const initialsEl = document.getElementById('editProfPhotoInitials');
+      const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
+      if (photo) {
+        preview.src = photo;
+        preview.style.display = 'block';
+        initialsEl.style.display = 'none';
+        removeBtn.style.display = 'inline-block';
+      } else {
+        preview.style.display = 'none';
+        initialsEl.style.display = 'flex';
+        const name = profile.nama || '';
+        initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+        removeBtn.style.display = 'none';
+      }
+      document.getElementById('editProfPhotoInput').value = '';
+
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function handleProfilePhotoChange(input) {
+      const file = input.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Ukuran foto maksimal 5MB.');
+        input.value = '';
+        return;
+      }
+      try {
+        // Kompres ke thumbnail 150x150 JPEG quality 0.6 (∼5-10KB)
+        const compressed = await compressImage(file, 150, 0.6);
+        const preview = document.getElementById('editProfPhotoPreview');
+        const initialsEl = document.getElementById('editProfPhotoInitials');
+        const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
+        preview.src = compressed;
+        preview.style.display = 'block';
+        initialsEl.style.display = 'none';
+        removeBtn.style.display = 'inline-block';
+      } catch(e) {
+        alert('Gagal memproses foto. Coba foto lain.');
+        input.value = '';
+      }
+    }
+
+    function removeProfilePhoto() {
+      const preview = document.getElementById('editProfPhotoPreview');
+      const initialsEl = document.getElementById('editProfPhotoInitials');
+      const removeBtn = document.getElementById('editProfPhotoRemoveBtn');
+      const savedProfileStr = sessionStorage.getItem('activeProfile');
+      let profile = {};
+      try { profile = JSON.parse(savedProfileStr || '{}'); } catch(e) {}
+      const name = profile.nama || document.getElementById('editProfNama').value || '';
+      initialsEl.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+      preview.src = '';
+      preview.style.display = 'none';
+      initialsEl.style.display = 'flex';
+      removeBtn.style.display = 'none';
+      document.getElementById('editProfPhotoInput').value = '';
+    }
+
+    function cancelEditProfile() {
+      document.getElementById('editProfilePanel').style.display = 'none';
+    }
+
+    async function saveProfile(event) {
+      event.preventDefault();
+      const msgEl = document.getElementById('editProfileMsg');
+
+      const nama = document.getElementById('editProfNama').value.trim();
+      const nrp = document.getElementById('editProfNrp').value.trim();
+      const pangkat = document.getElementById('editProfPangkat').value;
+      const corps = document.getElementById('editProfCorps').value;
+      const passBaru = document.getElementById('editProfPassBaru').value;
+      const passKonfirm = document.getElementById('editProfPassKonfirm').value;
+
+      if (!nama) {
+        msgEl.textContent = '❌ Nama lengkap tidak boleh kosong.';
+        msgEl.style.color = 'var(--error)';
+        msgEl.style.background = '#fef2f2';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      if (passBaru && passBaru.length < 4) {
+        msgEl.textContent = '❌ Password baru minimal 4 karakter.';
+        msgEl.style.color = 'var(--error)';
+        msgEl.style.background = '#fef2f2';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      if (passBaru && passBaru !== passKonfirm) {
+        msgEl.textContent = '❌ Konfirmasi password tidak cocok.';
+        msgEl.style.color = 'var(--error)';
+        msgEl.style.background = '#fef2f2';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      // Build updatedProfile dengan foto yang sudah dikompres
+      const preview = document.getElementById('editProfPhotoPreview');
+      const activeUsername = sessionStorage.getItem('activeUsername');
+
+      // Ambil foto lama dari profile yang ada di session
+      const existingProfileStr = sessionStorage.getItem('activeProfile');
+      let existingProfile = {};
+      try { existingProfile = JSON.parse(existingProfileStr || '{}'); } catch(e) {}
+
+      let photo = existingProfile.photo || null;
+      if (preview && preview.style.display !== 'none' && preview.src && preview.src.startsWith('data:')) {
+        photo = preview.src; // sudah dikompres oleh handleProfilePhotoChange
+      } else if (preview && preview.style.display === 'none') {
+        photo = null; // dihapus
+      }
+
+      // Update profile di sessionStorage
+      const updatedProfile = { nama, nrp, pangkat, corps, photo };
+      sessionStorage.setItem('activeProfile', JSON.stringify(updatedProfile));
+
+      // Update di database users (localStorage + online)
+      const users = await fetchUsersOnline();
+      const idx = users.findIndex(u => u.username.toLowerCase() === (activeUsername || '').toLowerCase());
+      if (idx !== -1) {
+        users[idx].profile = updatedProfile;
+        if (passBaru) {
+          users[idx].password = passBaru;
+        }
+        await saveUsersOnline(users);
+      }
+
+      // Refresh tampilan kartu profil
+      loadStudentProfile();
+
+      msgEl.textContent = '✅ Profil berhasil diperbarui!';
+      msgEl.style.color = 'var(--success)';
+      msgEl.style.background = '#f0fdf4';
+      msgEl.style.display = 'block';
+
+      setTimeout(() => {
+        document.getElementById('editProfilePanel').style.display = 'none';
+      }, 1800);
+    }
+
+    async function checkExamAccess() {
+      const schedule = JSON.parse(localStorage.getItem('examSchedule') || 'null');
+      if (!schedule) return true;
+      if (schedule.overrideOpen) return true;
+      
+      let now = new Date();
+      try {
+         showLoading("Mengecek waktu server...");
+         const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Jakarta');
+         if(response.ok) {
+            const data = await response.json();
+            now = new Date(data.datetime);
+         }
+      } catch(e) {
+         console.warn('Waktu server gagal, menggunakan waktu lokal.');
+      } finally {
+         hideLoading();
+      }
+      
+      if (schedule.startTime && now < new Date(schedule.startTime)) {
+        showNotification("Waktu ujian belum dimulai.", "error");
+        return false;
+      }
+      if (schedule.endTime && now > new Date(schedule.endTime)) {
+        showNotification("Waktu ujian telah berakhir.", "error");
+        return false;
+      }
+      return true;
+    }
+
+    async function openStudentTab(tab) {
+      document.getElementById('studentMenuGrid').style.display = 'none';
+      hideError();
+      
+      setTodayDate();
+      
+      if (tab === 'absen') {
+        document.getElementById('studentAbsenPanel').style.display = 'block';
+        document.getElementById('studentUjianPanel').style.display = 'none';
+      } else if (tab === 'ujian') {
+        const hasAccess = await checkExamAccess();
+        if(!hasAccess) {
+          document.getElementById('studentMenuGrid').style.display = 'grid';
+          return;
+        }
+        document.getElementById('studentAbsenPanel').style.display = 'none';
+        document.getElementById('studentUjianPanel').style.display = 'block';
+        document.getElementById('studentUjianForm').style.display = 'block';
+        document.getElementById('resultCard').style.display = 'none';
+        renderStudentQuestions();
+      }
+    }
+
+    function backToStudentMenu() {
+      document.getElementById('studentMenuGrid').style.display = 'grid';
+      document.getElementById('studentAbsenPanel').style.display = 'none';
+      document.getElementById('studentUjianPanel').style.display = 'none';
+      document.getElementById('studentAbsenForm').reset();
+      document.getElementById('studentUjianForm').reset();
+      
+      const cards = document.querySelectorAll('.option-card');
+      cards.forEach(c => c.classList.remove('selected'));
+      
+      hideError();
+    }
+    
+    function setTodayDate() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      let mm = today.getMonth() + 1;
+      let dd = today.getDate();
+      if (dd < 10) dd = '0' + dd;
+      if (mm < 10) mm = '0' + mm;
+      const formattedToday = yyyy + '-' + mm + '-' + dd;
+      
+      const dateEl = document.getElementById('student_tanggal');
+      if (dateEl) dateEl.value = formattedToday;
+    }
+
+    let _lastAttendanceCount = -1;
+    let _pollingInterval = null;
+
+    function playNotificationSound() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      } catch(e) {}
+    }
+
+    async function checkNewAttendance() {
+      try {
+        const att = await fetchAttendanceOnline();
+        if (_lastAttendanceCount !== -1 && att.length > _lastAttendanceCount) {
+          const newAtt = att[att.length - 1];
+          const time = new Date(newAtt.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+          playNotificationSound();
+          showNotification(`🔔 ABSENSI BARU: ${newAtt.nama || newAtt.username} (${time} WIB)`, 'success');
+          if (document.getElementById('adminTab_absensi').style.display === 'block') {
+             loadAdminAttendance();
+          }
+        }
+        _lastAttendanceCount = att.length;
+      } catch(e) {}
+    }
+
+    function startAdminPolling() {
+      if (_pollingInterval) clearInterval(_pollingInterval);
+      _pollingInterval = setInterval(checkNewAttendance, 5000);
+      fetchAttendanceOnline().then(att => _lastAttendanceCount = att.length).catch(()=>{});
+    }
+    
+    function stopAdminPolling() {
+      if (_pollingInterval) clearInterval(_pollingInterval);
+    }
+
+    function handleLogout() {
+      stopAdminPolling();
+      sessionStorage.clear();
+      currentRole = null;
+      document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('loginPortal').style.display = 'block';
+      switchLoginTab('siswa');
+    }
+
+    // Radio styles
+    function updateRadioCard(radio) {
+      const cards = document.querySelectorAll('.option-card');
+      cards.forEach(c => c.classList.remove('selected'));
+      radio.closest('.option-card').classList.add('selected');
+      hideError();
+    }
+
+    // Validation
+    function showError(msg) {
+      const errorBox = document.getElementById('errorBox');
+      document.getElementById('errorMsg').textContent = msg;
+      errorBox.style.display = 'flex';
+      window.scrollTo({ top: errorBox.offsetTop - 20, behavior: 'smooth' });
+    }
+
+    function hideError() {
+      document.getElementById('errorBox').style.display = 'none';
+    }
+
+    function validateSection3() {
+      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        const textarea = document.querySelector(`textarea[name="dynamic_q_${q.id}"]`);
+        const val = textarea ? textarea.value.trim() : '';
+        if (!val) {
+          showError(`Harap jawab Soal Nomor ${i + 1} terlebih dahulu.`);
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // Dynamic rendering of student form textareas
+    function renderStudentQuestions() {
+      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+      const container = document.getElementById('dynamicQuestionsContainer');
+      container.innerHTML = '';
+
+      if (questions.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--text-muted);">Tidak ada soal ujian aktif saat ini. Silakan hubungi Operator.</div>`;
+        return;
+      }
+
+      questions.forEach((q, index) => {
+        const div = document.createElement('div');
+        div.className = 'question-block';
+        
+        let fileLinkHtml = '';
+        if (q.fileData) {
+          fileLinkHtml = `<div style="margin-top: 0.5rem; margin-bottom: 1rem; font-size: 0.85rem; background: var(--primary-light); padding: 0.5rem; border-radius: var(--radius-sm); border: 1px dashed var(--primary);">
+            📄 <a href="${q.fileData}" download="${q.fileName}" style="color:var(--primary); font-weight:700; text-decoration:underline;">Unduh Dokumen Soal (${q.fileName})</a>
+            <span class="text-muted" style="font-size:0.75rem; display:block; margin-top: 2px;">Diunggah oleh Admin pada: ${q.fileUploadTime}</span>
+          </div>`;
+        }
+
+        div.innerHTML = `
+          <div class="question-text">${index + 1}. ${q.text} <span class="required">*</span></div>
+          ${fileLinkHtml}
+          <div class="answers-list">
+            <textarea name="dynamic_q_${q.id}" rows="3" placeholder="Tuliskan jawaban esai Anda..." required></textarea>
+          </div>
+          
+          <div class="form-group" style="margin-top: 1rem; margin-bottom: 0;">
+            <label style="font-size: 0.8rem; color: var(--text-muted);">Unggah Berkas Pendukung Jawaban Anda (Opsional)</label>
+            <input type="file" id="ansFile_${q.id}" accept=".pdf, .doc, .docx, .xls, .xlsx, .png, .jpg, .jpeg" onchange="handleAnswerFileChange(this, ${q.id})">
+            <input type="hidden" id="ansFileData_${q.id}" value="">
+            <input type="hidden" id="ansFileName_${q.id}" value="">
+            <input type="hidden" id="ansFileTime_${q.id}" value="">
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // Handle student answer sheet file upload conversion
+    window.handleAnswerFileChange = function(input, qId) {
+      const file = input.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const now = new Date();
+        const timeStr = now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById(`ansFileData_${qId}`).value = e.target.result;
+        document.getElementById(`ansFileName_${qId}`).value = file.name;
+        document.getElementById(`ansFileTime_${qId}`).value = timeStr;
+      };
+      reader.readAsDataURL(file);
+    };
+
+    // Attendance Submission & online database saving
+    async function submitAttendance(event) {
+      if (event) event.preventDefault();
+      try {
+        const activeUser = sessionStorage.getItem('activeUsername');
+        const savedProfileStr = sessionStorage.getItem('activeProfile');
+        let profile = {};
+        if (savedProfileStr) {
+          try { profile = JSON.parse(savedProfileStr); } catch(e) {}
+        }
+
+        const kehadiranEl = document.querySelector('input[name="student_kehadiran"]:checked');
+        if (!kehadiranEl) {
+          showError("Silakan pilih status kehadiran Anda.");
+          return;
+        }
+        const kehadiran = kehadiranEl.value;
+        const tanggal = document.getElementById('student_tanggal').value;
+        const keterangan = document.getElementById('student_keterangan').value.trim();
+
+        if (!tanggal) {
+          showError("Harap tentukan tanggal pelaksanaan.");
+          return;
+        }
+
+        hideError();
+        
+        let serverISO = new Date().toISOString();
+        try {
+          const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Jakarta');
+          if (response.ok) {
+            const data = await response.json();
+            serverISO = data.datetime;
+          }
+        } catch (e) {
+          console.warn('Waktu server gagal diambil, menggunakan waktu lokal.');
+        }
+
+        const newAttendance = {
+          timestamp: serverISO,
+          username: activeUser,
+          nama: profile.nama || activeUser || "",
+          nrp: profile.nrp || "",
+          pangkat: profile.pangkat || "",
+          corps: profile.corps || "",
+          kehadiran,
+          keterangan
+        };
+
+        const existing = await fetchAttendanceOnline();
+        existing.push(newAttendance);
+        await saveAttendanceOnline(existing);
+
+        showNotification('Absensi Anda berhasil dikirim ke Operator.', 'success');
+        
+        document.getElementById('studentAbsenForm').reset();
+        backToStudentMenu();
+      } catch(error) {
+        showNotification("Gagal mengirim absensi: " + error.message, 'error');
+        console.error(error);
+      }
+    }
+
+    // Exam Submission & online database saving
+    async function submitExam(event) {
+      if (event) event.preventDefault();
+      try {
+        const questions = await fetchQuestionsOnline();
+        if (questions.length === 0) {
+          alert('Tidak ada soal ujian yang bisa dikirim.');
+          return;
+        }
+
+        if (!validateSection3()) return;
+        hideError();
+
+        const activeUser = sessionStorage.getItem('activeUsername');
+        const savedProfileStr = sessionStorage.getItem('activeProfile');
+        let profile = {};
+        if (savedProfileStr) {
+          try { profile = JSON.parse(savedProfileStr); } catch(e) {}
+        }
+
+        const nama = profile.nama || activeUser || "-";
+        const nrp = profile.nrp || "-";
+        const pangkat = profile.pangkat || "";
+        const corps = profile.corps || "";
+        const tanggal = new Date().toISOString().split('T')[0];
+
+        // Calculation
+        let correctCount = 0;
+        const totalQuestions = questions.length;
+        const studentAnswers = {};
+        const studentFiles = {};
+
+        questions.forEach(q => {
+          const textarea = document.querySelector(`textarea[name="dynamic_q_${q.id}"]`);
+          const ans = textarea ? textarea.value.trim() : '';
+          studentAnswers[q.id] = ans; // key is question id
+          
+          // Grab uploaded file details safely
+          const fDataEl = document.getElementById(`ansFileData_${q.id}`);
+          const fNameEl = document.getElementById(`ansFileName_${q.id}`);
+          const fTimeEl = document.getElementById(`ansFileTime_${q.id}`);
+          const fData = fDataEl ? fDataEl.value : '';
+          const fName = fNameEl ? fNameEl.value : '';
+          const fTime = fTimeEl ? fTimeEl.value : '';
+          
+          if (fData) {
+            studentFiles[q.id] = { fileData: fData, fileName: fName, fileTime: fTime };
+          }
+
+          // Auto grade essay using keyword matches
+          const textToSearch = ans.toLowerCase();
+          const keywords = q.keywords;
+          const isMatched = keywords.some(kw => textToSearch.includes(kw.toLowerCase()));
+          
+          if (isMatched) {
+            correctCount++;
+          }
+        });
+
+        const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+        const now = new Date();
+        const submissionTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+        // Save submission data
+        const newSubmission = {
+          id: Date.now(),
+          timestamp: new Date().toISOString(),
+          username: activeUser,
+          profile: {
+            nama,
+            nrp,
+            pangkat,
+            corps
+          },
+          answers: studentAnswers,
+          answerFiles: studentFiles,
+          score,
+          correctCount,
+          totalQuestions
+        };
+
+        const existing = await fetchSubmissionsOnline();
+        existing.push(newSubmission);
+        await saveSubmissionsOnline(existing);
+
+        alert('✅ Berhasil! Jawaban ujian dan dokumen Anda telah sukses terkirim ke Operator.');
+
+        // Display student result card
+        document.getElementById('finalScore').textContent = score;
+        document.getElementById('resNama').textContent = nama;
+        document.getElementById('resNis').textContent = nrp;
+        document.getElementById('resKelasJurusan').textContent = `${pangkat} - ${corps}`;
+        document.getElementById('resTanggal').textContent = formatDate(tanggal);
+        document.getElementById('resBenar').textContent = `${correctCount} / ${totalQuestions}`;
+
+        const badge = document.getElementById('passingBadge');
+        if (score >= 70) {
+          badge.textContent = 'LULUS (TUNTAS)';
+          badge.className = 'badge badge-passed';
+        } else {
+          badge.textContent = 'BELUM TUNTAS';
+          badge.className = 'badge badge-failed';
+        }
+
+        document.getElementById('studentUjianForm').style.display = 'none';
+        document.getElementById('resultCard').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (error) {
+        alert("Gagal mengirim jawaban: " + error.message);
+        console.error(error);
+      }
+    }
+
+    // Dynamic rendering of questions list in Admin panel
+    function renderAdminQuestions() {
+      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+      const listDiv = document.getElementById('adminQuestionsList');
+      listDiv.innerHTML = '';
+
+      if (questions.length === 0) {
+        listDiv.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 1.5rem; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">Belum ada soal ujian esai yang dibuat. Gunakan form di atas untuk menambahkan.</div>`;
+        return;
+      }
+
+      questions.forEach((q, index) => {
+        const div = document.createElement('div');
+        div.style = 'background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius-sm); margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;';
+        
+        let fileLinkHtml = '';
+        if (q.fileData) {
+          fileLinkHtml = `<div style="font-size: 0.8rem; margin-top: 0.35rem;">
+            📄 Dokumen: <a href="${q.fileData}" download="${q.fileName}" style="color:var(--accent); font-weight:700; text-decoration:underline;">${q.fileName}</a>
+            <span class="text-muted" style="font-size: 0.75rem;">(Diunggah: ${q.fileUploadTime})</span>
+          </div>`;
+        }
+
+        div.innerHTML = `
+          <div style="flex: 1; min-width: 250px;">
+            <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">Soal ${index + 1}: ${q.text}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;">Kata Kunci Evaluasi: <strong>${q.keywords.join(', ')}</strong></div>
+            ${fileLinkHtml}
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary" onclick="editQuestion(${q.id})" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">Edit</button>
+            <button class="btn btn-danger" onclick="deleteQuestion(${q.id})" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">Hapus</button>
+          </div>
+        `;
+        listDiv.appendChild(div);
+      });
+    }
+
+    // Save or Edit Questions
+    function saveQuestion(event) {
+      event.preventDefault();
+      const idVal = document.getElementById('editQuestId').value;
+      const textVal = document.getElementById('editQuestText').value.trim();
+      const keywordsVal = document.getElementById('editQuestKeywords').value.trim();
+      const fileInput = document.getElementById('editQuestFile');
+      const file = fileInput.files[0];
+
+      if (!textVal || !keywordsVal) {
+        alert('Semua kolom wajib diisi.');
+        return;
+      }
+
+      const keywords = keywordsVal.split(',').map(k => k.trim()).filter(k => k.length > 0);
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const now = new Date();
+          const uploadTime = now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+          saveToLocalStorage(idVal, textVal, keywords, e.target.result, file.name, uploadTime);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Keep existing file if editing, else null
+        let existingFile = null;
+        let existingFileName = '';
+        let existingTime = '';
+        if (idVal) {
+          const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+          const q = questions.find(item => item.id == idVal);
+          if (q && q.fileData) {
+            existingFile = q.fileData;
+            existingFileName = q.fileName;
+            existingTime = q.fileUploadTime;
+          }
+        }
+        saveToLocalStorage(idVal, textVal, keywords, existingFile, existingFileName, existingTime);
+      }
+    }
+
+    async function saveToLocalStorage(idVal, text, keywords, fileData, fileName, fileUploadTime) {
+      let questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+      if (idVal) {
+        questions = questions.map(q => q.id == idVal ? { id: parseInt(idVal), text, keywords, fileData, fileName, fileUploadTime } : q);
+      } else {
+        const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
+        questions.push({ id: newId, text, keywords, fileData, fileName, fileUploadTime });
+      }
+      
+      // Save online first
+      await saveQuestionsOnline(questions);
+
+      // Reset Form
+      document.getElementById('questionForm').reset();
+      document.getElementById('editQuestId').value = '';
+      document.getElementById('editQuestFileStatus').textContent = '';
+      document.getElementById('btnCancelEditQuest').style.display = 'none';
+      document.getElementById('submitQuestBtnText').textContent = 'Tambah Soal Baru';
+      renderAdminQuestions();
+    }
+
+    function editQuestion(id) {
+      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+      const q = questions.find(item => item.id === id);
+      if (!q) return;
+
+      document.getElementById('editQuestId').value = q.id;
+      document.getElementById('editQuestText').value = q.text;
+      document.getElementById('editQuestKeywords').value = q.keywords.join(', ');
+      
+      if (q.fileName) {
+        document.getElementById('editQuestFileStatus').textContent = `File saat ini: ${q.fileName} (Diunggah pada: ${q.fileUploadTime})`;
+      } else {
+        document.getElementById('editQuestFileStatus').textContent = '';
+      }
+
+      document.getElementById('btnCancelEditQuest').style.display = 'inline-flex';
+      document.getElementById('submitQuestBtnText').textContent = 'Simpan Perubahan';
+      
+      window.scrollTo({ top: document.getElementById('questionForm').offsetTop - 20, behavior: 'smooth' });
+    }
+
+    function cancelEditQuestion() {
+      document.getElementById('questionForm').reset();
+      document.getElementById('editQuestId').value = '';
+      document.getElementById('editQuestFileStatus').textContent = '';
+      document.getElementById('btnCancelEditQuest').style.display = 'none';
+      document.getElementById('submitQuestBtnText').textContent = 'Tambah Soal Baru';
+    }
+
+    async function deleteQuestion(id) {
+      if (!confirm('Apakah Anda yakin ingin menghapus soal ini?')) return;
+      let questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+      questions = questions.filter(q => q.id !== id);
+      
+      await saveQuestionsOnline(questions);
+      renderAdminQuestions();
+    }
+    function formatDateTime(isoString) {
+      if (!isoString) return '-';
+      try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return isoString;
+        const dateStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        return `${dateStr} - ${timeStr} WIB`;
+      } catch(e) {
+        return isoString;
+      }
+    }
+
+    async async function loadAdminAttendance() {
+      const attendance = await fetchAttendanceOnline();
+      
+      // Sort by timestamp ascending
+      attendance.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+      const tbody = document.getElementById('attendanceTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      
+      // Calculate Stats for Today
+      try {
+        const users = await fetchUsersOnline();
+        const students = users.filter(u => u.role === 'siswa');
+        const totalSiswa = students.length;
+        
+        const todayStr = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Jakarta" }).substring(0, 10);
+        const todaysAttendance = attendance.filter(a => String(a.timestamp).substring(0, 10) === todayStr);
+        
+        const totalSudah = todaysAttendance.length;
+        const totalBelum = Math.max(0, totalSiswa - totalSudah);
+        
+        if(document.getElementById('absStatTotal')) document.getElementById('absStatTotal').textContent = totalSiswa;
+        if(document.getElementById('absStatSudah')) document.getElementById('absStatSudah').textContent = totalSudah;
+        if(document.getElementById('absStatBelum')) document.getElementById('absStatBelum').textContent = totalBelum;
+        
+        const elFirst = document.getElementById('absFirstInfo');
+        const elLast = document.getElementById('absLastInfo');
+        if(todaysAttendance.length > 0) {
+           const first = todaysAttendance[0];
+           const last = todaysAttendance[todaysAttendance.length - 1];
+           
+           if(elFirst) {
+             const firstTime = new Date(first.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second:'2-digit' });
+             elFirst.innerHTML = `${first.nama || first.username} <span style="font-size:0.85rem; color:var(--text-muted);">(${first.nrp || '-'})</span><br><span style="color:var(--primary);">${firstTime} WIB</span>`;
+           }
+           if(elLast) {
+             const lastTime = new Date(last.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second:'2-digit' });
+             elLast.innerHTML = `${last.nama || last.username} <span style="font-size:0.85rem; color:var(--text-muted);">(${last.nrp || '-'})</span><br><span style="color:var(--primary);">${lastTime} WIB</span>`;
+           }
+        } else {
+           if(elFirst) elFirst.textContent = 'Belum ada absen';
+           if(elLast) elLast.textContent = 'Belum ada absen';
+        }
+      } catch(e) { console.error("Gagal memuat statistik absen", e); }
+
+      attendance.forEach(att => {
+        const tr = document.createElement('tr');
+        
+        let colorStyle = 'background: #dcfce7; color: #15803d;'; // Hadir green
+        if (att.kehadiran === 'Sakit') colorStyle = 'background: #fef9c3; color: #a16207;'; // Yellow
+        if (att.kehadiran === 'Izin') colorStyle = 'background: #e0f2fe; color: #0369a1;'; // Blue
+        if (att.kehadiran === 'Alpa') colorStyle = 'background: #fee2e2; color: #b91c1c;'; // Red
+
+        tr.innerHTML = `
+          <td style="font-size:0.85rem; font-weight:600;">${formatDateTime(att.timestamp)}</td>
+          <td><strong>${att.nrp || '-'}</strong></td>
+          <td style="font-weight:600; color:var(--text-dark);">${att.nama}</td>
+          <td>${att.pangkat || '-'}</td>
+          <td>${att.corps || '-'}</td>
+          <td><span class="badge" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: var(--radius-sm); ${colorStyle}">${att.kehadiran}</span></td>
+          <td style="font-size:0.85rem; color:var(--text-muted);">${att.keterangan || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (attendance.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada absensi harian yang masuk hari ini.</td></tr>`;
+      }
+    }
+
+    async function clearAllAttendance() {
+      if (confirm('Apakah Anda yakin ingin menghapus seluruh data rekap absensi? Tindakan ini tidak dapat dibatalkan.')) {
+        localStorage.removeItem('attendance');
+        await saveAttendanceOnline([]);
+        await loadAdminAttendance();
+      }
+    }
+
+    // Load Admin Submission Dashboard
+    async function loadAdminDashboard() {
+      // Load attendance table first
+      await loadAdminAttendance();
+
+      // Fetch submissions from online source
+      const submissions = await fetchSubmissionsOnline();
+      
+      // Fetch registered users count
+      const users = await fetchUsersOnline();
+      const personnelCount = users.filter(u => u.role === 'siswa').length;
+
+      // Sort submissions by timestamp (id) descending (newest first)
+      submissions.sort((a, b) => b.id - a.id);
+
+      const tbody = document.getElementById('submissionsTableBody');
+      if (tbody) tbody.innerHTML = '';
+
+      let totalScore = 0;
+      let passedCount = 0;
+      let failedCount = 0;
+
+      submissions.forEach(sub => {
+        totalScore += sub.score;
+        if (sub.score >= 70) passedCount++;
+        else failedCount++;
+
+        const prof = sub.profile || { nama: sub.nama, nrp: sub.nis, pangkat: sub.kelas, corps: sub.jurusan };
+        const examTimeStr = sub.timestamp ? formatDateTime(sub.timestamp) : `${formatDate(sub.tanggal)} pukul ${sub.jam || '--:--'} WIB`;
+
+        if (!tbody) return;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-size:0.85rem; font-weight:600;">${examTimeStr}</td>
+          <td><strong>${prof.nrp || '-'}</strong></td>
+          <td>${prof.nama}</td>
+          <td>${prof.pangkat || '-'}</td>
+          <td>${prof.corps || '-'}</td>
+          <td>
+            <span class="score-badge ${sub.score >= 70 ? 'passed' : 'failed'}">${sub.score}</span>
+          </td>
+          <td>
+            <button class="btn btn-secondary" onclick="viewDetail(${sub.id})" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+              Lihat Detail
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (tbody && submissions.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada hasil ujian yang terkirim.</td></tr>`;
+      }
+
+      // Update statistics panel widgets
+      const statPersonnelEl = document.getElementById('statPersonnel');
+      if (statPersonnelEl) statPersonnelEl.textContent = personnelCount;
+      document.getElementById('statTotal').textContent = submissions.length;
+      document.getElementById('statAverage').textContent = submissions.length > 0 ? (totalScore / submissions.length).toFixed(1) : '0.0';
+      document.getElementById('statPassed').textContent = passedCount;
+      document.getElementById('statFailed').textContent = failedCount;
+
+      // Render personnel cards in Ringkasan
+      renderRingkasanPersonnel().catch(e => console.error(e));
+    }
+
+    // View Detail Modal of answers
+    function viewDetail(id) {
+      const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
+      const sub = submissions.find(s => s.id === id);
+      if (!sub) return;
+
+      // We need to look up active or saved questions text
+      // Let's check saved questions in the submission. If not saved, load current exam questions as fallback.
+      const currentQuestions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+
+      let answersHtml = '';
+      
+      // Go through each submitted answer
+      Object.keys(sub.answers).forEach((qId, index) => {
+        const ans = sub.answers[qId];
+        
+        // Find question text
+        const qRef = currentQuestions.find(q => q.id == qId);
+        const questText = qRef ? qRef.text : `Pertanyaan Kustom (ID: ${qId})`;
+        const keywords = qRef ? qRef.keywords : [];
+        
+        const isCorrect = keywords.some(kw => ans.toLowerCase().includes(kw.toLowerCase()));
+
+        let fileLink = '';
+        if (sub.answerFiles && sub.answerFiles[qId]) {
+          const fileObj = sub.answerFiles[qId];
+          fileLink = `<div style="font-size:0.8rem; margin-top:0.5rem; background: var(--primary-light); padding: 0.4rem; border-radius: 4px; display: block; width: fit-content;">
+            📄 File Jawaban: <a href="${fileObj.fileData}" download="${fileObj.fileName}" style="color:var(--primary); font-weight:700; text-decoration:underline;">${fileObj.fileName}</a>
+            <span style="font-size:0.7rem; color:var(--text-muted); margin-left: 5px;">(Diunggah: ${fileObj.fileTime})</span>
+          </div>`;
+        }
+
+        answersHtml += `
+          <div style="margin-bottom: 0.85rem; padding: 0.5rem; background: ${isCorrect ? 'var(--accent-light)' : '#fef2f2'}; border-radius: 4px;">
+            <div style="font-size: 0.85rem; font-weight: 600;">${index + 1}. ${questText}</div>
+            <div style="font-size: 0.85rem; margin-top: 0.25rem;">
+              Jawaban Personel: <span style="display:block; padding: 0.25rem; font-style: italic; background:#ffffff; border:1px solid var(--border-color); margin-top:0.25rem;">"${ans}"</span>
+              ${fileLink}
+              <span style="font-size:0.75rem; display:block; margin-top:0.25rem;">Pencocokan Kata Kunci: ${isCorrect ? '🟢 Cocok' : '🔴 Tidak Cocok'} ${keywords.length > 0 ? `(Target: ${keywords.join('/')})` : ''}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      const body = document.getElementById('modalDetailsBody');
+      body.innerHTML = `
+        <div style="margin-bottom: 1rem; font-size: 0.9rem;">
+          <p><strong>Nama:</strong> ${sub.nama}</p>
+          <p><strong>NRP:</strong> ${sub.nis}</p>
+          <p><strong>Pangkat / Corps:</strong> ${sub.kelas} - ${sub.jurusan}</p>
+          <p><strong>Keterangan Absensi:</strong> ${sub.keterangan || '-'}</p>
+        </div>
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1rem 0;">
+        <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem;">Lembar Jawaban:</h4>
+        ${answersHtml || '<p style="font-size:0.85rem; color:var(--text-muted);">Tidak ada jawaban terekam.</p>'}
+      `;
+
+      document.getElementById('detailModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('detailModal').style.display = 'none';
+    }
+
+    function clearAllSubmissions() {
+      if (confirm('Apakah Anda yakin ingin menghapus seluruh data hasil ujian masuk? Tindakan ini tidak dapat dibatalkan.')) {
+        localStorage.removeItem('submissions');
+        loadAdminDashboard();
+      }
+    }
+
+    function resetForm() {
+      backToStudentMenu();
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      return `${parseInt(parts[2], 10)} ${months[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
+    }
+
+    // ==========================================
+    // EXPORT & IMPORT QUESTIONS
+    // ==========================================
+
+    function exportQuestionsToWord() {
+      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+      if (questions.length === 0) return alert('Tidak ada soal untuk diexport.');
+      
+      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><title>Daftar Soal Ujian</title><style>body {font-family: Arial;}</style></head>
+      <body>
+      <h2>DAFTAR SOAL UJIAN ESAI</h2>
+      <ol>`;
+      
+      questions.forEach(q => {
+        html += `<li><strong>Pertanyaan:</strong> ${q.text}<br><strong>Kata Kunci:</strong> ${q.keywords.join(', ')}</li><br>`;
+      });
+      
+      html += `</ol></body></html>`;
+      
+      const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Daftar_Soal_Ujian.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function exportQuestionsToExcel() {
+      const questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+      if (questions.length === 0) return alert('Tidak ada soal untuk diexport.');
+      
+      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><meta charset="utf-8"></head>
+      <body>
+      <table border="1">
+        <tr>
+          <th style="background-color: #1e3a8a; color: white;">No</th>
+          <th style="background-color: #1e3a8a; color: white;">Pertanyaan</th>
+          <th style="background-color: #1e3a8a; color: white;">Kata Kunci Evaluasi</th>
+        </tr>`;
+        
+      questions.forEach((q, index) => {
+        html += `<tr>
+          <td>${index + 1}</td>
+          <td>${q.text}</td>
+          <td>${q.keywords.join(', ')}</td>
+        </tr>`;
+      });
+      
+      html += `</table></body></html>`;
+      
+      const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Daftar_Soal_Ujian.xls';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    async function importQuestions(input) {
+      const file = input.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n');
+        let questions = JSON.parse(localStorage.getItem('exam_questions') || '[]');
+        let importedCount = 0;
+        
+        lines.forEach(line => {
+          if (!line.trim()) return;
+          const parts = line.split('|');
+          if (parts.length >= 2) {
+            const questText = parts[0].trim();
+            const keywords = parts[1].split(',').map(k => k.trim()).filter(k => k.length > 0);
+            
+            if (questText && keywords.length > 0) {
+              const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
+              questions.push({ id: newId, text: questText, keywords });
+              importedCount++;
+            }
+          }
+        });
+        
+        if (importedCount > 0) {
+          await saveQuestionsOnline(questions);
+          renderAdminQuestions();
+          alert(`Berhasil mengimpor ${importedCount} soal.`);
+        } else {
+          alert('Gagal mengimpor. Pastikan format file menggunakan pemisah pipa (contoh: Pertanyaan | kunci1, kunci2)');
+        }
+        input.value = '';
+      };
+      reader.readAsText(file);
+    }
+
+    // ==========================================
+    // EXPORT SUBMISSION RESULTS (BONUS)
+    // ==========================================
+
+    function exportResultsToWord() {
+      const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
+      if (submissions.length === 0) return alert('Tidak ada hasil ujian untuk diexport.');
+      
+      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><title>Hasil Ujian Personel</title><style>body {font-family: Arial;} table {border-collapse: collapse; width: 100%;} th, td {border: 1px solid black; padding: 8px;}</style></head>
+      <body>
+      <h2>REKAPITULASI HASIL UJIAN PERSONEL TNI</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>NRP</th>
+            <th>Nama Lengkap</th>
+            <th>Pangkat</th>
+            <th>Corps</th>
+            <th>Kehadiran</th>
+            <th>Tanggal</th>
+            <th>Nilai</th>
+          </tr>
+        </thead>
+        <tbody>`;
+        
+      submissions.forEach(sub => {
+        html += `<tr>
+          <td>${sub.nis}</td>
+          <td>${sub.nama}</td>
+          <td>${sub.kelas}</td>
+          <td>${sub.jurusan}</td>
+          <td>${sub.kehadiran}</td>
+          <td>${formatDate(sub.tanggal)}</td>
+          <td>${sub.score}</td>
+        </tr>`;
+      });
+      
+      html += `</tbody></table></body></html>`;
+      
+      const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Rekap_Hasil_Ujian.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function exportAttendanceToExcel() {
+      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
+      if (attendance.length === 0) return alert('Tidak ada rekap absensi untuk diexport.');
+      
+      // Sort by timestamp ascending
+      attendance.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      
+      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><meta charset="utf-8"></head>
+      <body>
+      <table border="1">
+        <thead>
+          <tr>
+            <th style="background-color: #1e3a8a; color: white;">Tanggal & Waktu Absen</th>
+            <th style="background-color: #1e3a8a; color: white;">NRP</th>
+            <th style="background-color: #1e3a8a; color: white;">Nama Lengkap</th>
+            <th style="background-color: #1e3a8a; color: white;">Pangkat</th>
+            <th style="background-color: #1e3a8a; color: white;">Corps</th>
+            <th style="background-color: #1e3a8a; color: white;">Kehadiran</th>
+            <th style="background-color: #1e3a8a; color: white;">Keterangan</th>
+          </tr>
+        </thead>
+        <tbody>`;
+        
+      attendance.forEach(att => {
+        html += `<tr>
+          <td>${formatDateTime(att.timestamp)}</td>
+          <td>${att.nrp || '-'}</td>
+          <td>${att.nama}</td>
+          <td>${att.pangkat || '-'}</td>
+          <td>${att.corps || '-'}</td>
+          <td>${att.kehadiran}</td>
+          <td>${att.keterangan || '-'}</td>
+        </tr>`;
+      });
+      
+      html += `</tbody></table></body></html>`;
+      
+      const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Rekap_Absensi_Personel.xls';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function exportResultsToExcel() {
+      const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
+      if (submissions.length === 0) return alert('Tidak ada hasil ujian untuk diexport.');
+      
+      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><meta charset="utf-8"></head>
+      <body>
+      <table border="1">
+        <thead>
+          <tr>
+            <th style="background-color: #1e3a8a; color: white;">NRP</th>
+            <th style="background-color: #1e3a8a; color: white;">Nama Lengkap</th>
+            <th style="background-color: #1e3a8a; color: white;">Pangkat</th>
+            <th style="background-color: #1e3a8a; color: white;">Corps</th>
+            <th style="background-color: #1e3a8a; color: white;">Kehadiran</th>
+            <th style="background-color: #1e3a8a; color: white;">Tanggal</th>
+            <th style="background-color: #1e3a8a; color: white;">Nilai</th>
+          </tr>
+        </thead>
+        <tbody>`;
+        
+      submissions.forEach(sub => {
+        html += `<tr>
+          <td>${sub.nis}</td>
+          <td>${sub.nama}</td>
+          <td>${sub.kelas}</td>
+          <td>${sub.jurusan}</td>
+          <td>${sub.kehadiran}</td>
+          <td>${formatDate(sub.tanggal)}</td>
+          <td>${sub.score}</td>
+        </tr>`;
+      });
+      
+      html += `</tbody></table></body></html>`;
+      
+      const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Rekap_Hasil_Ujian.xls';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // ==========================================
+    // MANAGEMENT PERSONNEL DATABASE (CRUD)
+    // ==========================================
+
+    async function renderAdminPersonnel() {
+      const tbody = document.getElementById('adminPersonnelTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.5rem;">⏳ Memuat data personil...</td></tr>`;
+
+      const users = await fetchUsersOnline();
+      const students = users.filter(u => u.role === 'siswa');
+      tbody.innerHTML = '';
+
+      students.forEach(student => {
+        const profile = student.profile || {};
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${student.username}</strong></td>
+          <td><code>${student.password}</code></td>
+          <td>${profile.nama || '-'}</td>
+          <td>${profile.nrp || '-'}</td>
+          <td>${profile.pangkat || '-'}</td>
+          <td>${profile.corps || '-'}</td>
+          <td>
+            <div style="display: flex; gap: 0.25rem;">
+              <button class="btn btn-secondary" onclick="editPersonnel('${student.username}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Edit / Reset</button>
+              <button class="btn btn-danger" onclick="deletePersonnel('${student.username}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Hapus</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (students.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Belum ada akun personel terdaftar.</td></tr>`;
+      }
+    }
+
+    async function savePersonnel(event) {
+      event.preventDefault();
+      const idVal = document.getElementById('editPersId').value; // old username key
+      const usernameVal = document.getElementById('editPersUsername').value.trim();
+      const passwordVal = document.getElementById('editPersPassword').value.trim();
+      const namaVal = document.getElementById('editPersNama').value.trim();
+      const nrpVal = document.getElementById('editPersNrp').value.trim();
+      const pangkatVal = document.getElementById('editPersPangkat').value;
+      const corpsVal = document.getElementById('editPersCorps').value;
+
+      let users = await fetchUsersOnline();
+
+      // Check duplicates if username changes or new registration
+      if (idVal !== usernameVal) {
+        const userExists = users.some(u => u.username.toLowerCase() === usernameVal.toLowerCase());
+        if (userExists || usernameVal.toLowerCase() === 'siswa' || usernameVal.toLowerCase() === 'admin') {
+          alert('Username ini sudah terdaftar.');
+          return;
+        }
+      }
+
+      const profile = { nama: namaVal, nrp: nrpVal, pangkat: pangkatVal, corps: corpsVal };
+
+      if (idVal) {
+        // Update existing
+        users = users.map(u => u.username === idVal ? { role: 'siswa', username: usernameVal, password: passwordVal, profile } : u);
+      } else {
+        // Add new
+        users.push({ role: 'siswa', username: usernameVal, password: passwordVal, profile });
+      }
+
+      await saveUsersOnline(users);
+      cancelEditPersonnel();
+      await renderAdminPersonnel();
+    }
+
+    async function editPersonnel(username) {
+      const users = await fetchUsersOnline();
+      const user = users.find(u => u.username === username);
+      if (!user) return;
+
+      const profile = user.profile || {};
+      document.getElementById('editPersId').value = user.username;
+      document.getElementById('editPersUsername').value = user.username;
+      document.getElementById('editPersPassword').value = user.password;
+      document.getElementById('editPersNama').value = profile.nama || '';
+      document.getElementById('editPersNrp').value = profile.nrp || '';
+      document.getElementById('editPersPangkat').value = profile.pangkat || '';
+      document.getElementById('editPersCorps').value = profile.corps || '';
+
+      document.getElementById('btnCancelEditPers').style.display = 'inline-flex';
+      document.getElementById('submitPersBtnText').textContent = 'Simpan Perubahan';
+      
+      window.scrollTo({ top: document.getElementById('personnelForm').offsetTop - 20, behavior: 'smooth' });
+    }
+
+    function cancelEditPersonnel() {
+      document.getElementById('personnelForm').reset();
+      document.getElementById('editPersId').value = '';
+      document.getElementById('btnCancelEditPers').style.display = 'none';
+      document.getElementById('submitPersBtnText').textContent = 'Tambah Personel Baru';
+    }
+
+    async function deletePersonnel(username) {
+      if (!confirm(`Apakah Anda yakin ingin menghapus akun personel "${username}"?`)) return;
+      let users = await fetchUsersOnline();
+      users = users.filter(u => u.username !== username);
+      await saveUsersOnline(users);
+      await renderAdminPersonnel();
+    }
+
+    // ==========================================
+    // RINGKASAN - DAFTAR PERSONIL CARDS
+    // ==========================================
+
+    let _ringkasanAllPersonnel = []; // cache for filter
+
+    async function renderRingkasanPersonnel() {
+      const container = document.getElementById('ringkasanPersonnelList');
+      if (!container) return;
+      container.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:1rem;">⏳ Memuat...</div>`;
+
+      const users = await fetchUsersOnline();
+      const students = users.filter(u => u.role === 'siswa');
+      _ringkasanAllPersonnel = students;
+      renderPersonnelCards(students);
+    }
+
+    function renderPersonnelCards(students) {
+      const container = document.getElementById('ringkasanPersonnelList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (students.length === 0) {
+        container.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); padding:2rem; font-size:0.9rem;">Belum ada personil terdaftar.</div>`;
+        return;
+      }
+
+      students.forEach(student => {
+        const p = student.profile || {};
+        const initials = (p.nama || student.username || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+        const card = document.createElement('div');
+        card.style.cssText = `
+          background: #fff; border: 1.5px solid var(--border-color); border-radius: var(--radius-md);
+          padding: 1rem; cursor: pointer; transition: var(--transition);
+          display: flex; align-items: center; gap: 0.85rem;
+          box-shadow: var(--shadow-sm);
+        `;
+        card.onmouseenter = () => { card.style.borderColor = 'var(--primary)'; card.style.boxShadow = '0 4px 16px rgba(30,58,138,0.12)'; card.style.transform = 'translateY(-2px)'; };
+        card.onmouseleave = () => { card.style.borderColor = 'var(--border-color)'; card.style.boxShadow = 'var(--shadow-sm)'; card.style.transform = 'none'; };
+        card.onclick = () => openEditPersonnelModal(student.username);
+
+        // Foto dari profile.photo (sudah dikompres, bisa sync online)
+        const photo = p.photo || null;
+        card.innerHTML = `
+          <div style="width: 42px; height: 42px; min-width:42px; border-radius: 50%; overflow:hidden; flex-shrink:0; border: 2.5px solid var(--primary); box-shadow: 0 1px 4px rgba(30,58,138,0.15);">
+            ${photo
+              ? `<img src="${photo}" alt="foto" style="width:100%; height:100%; object-fit:cover;">`
+              : `<div style="width:100%; height:100%; background: linear-gradient(135deg, var(--primary), #2563eb); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:0.95rem; font-family:'Outfit',sans-serif;">${initials}</div>`
+            }
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.nama || '(nama belum diisi)'}</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top:1px;">@${student.username} ${p.nrp ? '· ' + p.nrp : ''}</div>
+            <div style="font-size: 0.75rem; color: var(--accent); margin-top:2px; font-weight:600;">${p.pangkat || ''} ${p.corps ? '· ' + p.corps : ''}</div>
+          </div>
+          <span style="font-size:1rem; color:var(--text-muted);">›</span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function filterRingkasanPersonnel(query) {
+      const q = query.toLowerCase().trim();
+      if (!q) { renderPersonnelCards(_ringkasanAllPersonnel); return; }
+      const filtered = _ringkasanAllPersonnel.filter(s => {
+        const p = s.profile || {};
+        return (p.nama || '').toLowerCase().includes(q)
+          || (s.username || '').toLowerCase().includes(q)
+          || (p.nrp || '').toLowerCase().includes(q)
+          || (p.pangkat || '').toLowerCase().includes(q)
+          || (p.corps || '').toLowerCase().includes(q);
+      });
+      renderPersonnelCards(filtered);
+    }
+
+    // ==========================================
+    // MODAL EDIT PERSONEL (dari Ringkasan)
+    // ==========================================
+
+    async function openEditPersonnelModal(username) {
+      const users = await fetchUsersOnline();
+      const user = users.find(u => u.username === username);
+      if (!user) return;
+      const p = user.profile || {};
+
+      document.getElementById('modalPersOldUsername').value = user.username;
+      document.getElementById('modalPersUsername').value = user.username;
+      document.getElementById('modalPersNama').value = p.nama || '';
+      document.getElementById('modalPersNrp').value = p.nrp || '';
+      document.getElementById('modalPersPangkat').value = p.pangkat || '';
+      document.getElementById('modalPersCorps').value = p.corps || '';
+      document.getElementById('modalPersPassBaru').value = '';
+      document.getElementById('modalPersPassKonfirm').value = '';
+
+      const msgEl = document.getElementById('editPersModalMsg');
+      msgEl.style.display = 'none'; msgEl.textContent = '';
+
+      const modal = document.getElementById('modalEditPersonnel');
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeEditPersonnelModal() {
+      document.getElementById('modalEditPersonnel').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    function handleModalBackdropClick(event) {
+      if (event.target === document.getElementById('modalEditPersonnel')) {
+        closeEditPersonnelModal();
+      }
+    }
+
+    async function saveEditedPersonnel(event) {
+      event.preventDefault();
+      const msgEl = document.getElementById('editPersModalMsg');
+
+      const oldUsername = document.getElementById('modalPersOldUsername').value;
+      const newUsername = document.getElementById('modalPersUsername').value.trim();
+      const nama = document.getElementById('modalPersNama').value.trim();
+      const nrp = document.getElementById('modalPersNrp').value.trim();
+      const pangkat = document.getElementById('modalPersPangkat').value;
+      const corps = document.getElementById('modalPersCorps').value;
+      const passBaru = document.getElementById('modalPersPassBaru').value;
+      const passKonfirm = document.getElementById('modalPersPassKonfirm').value;
+
+      if (!nama) {
+        msgEl.textContent = '❌ Nama tidak boleh kosong.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+      }
+      if (passBaru && passBaru.length < 4) {
+        msgEl.textContent = '❌ Password baru minimal 4 karakter.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+      }
+      if (passBaru && passBaru !== passKonfirm) {
+        msgEl.textContent = '❌ Konfirmasi password tidak cocok.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+      }
+
+      let users = await fetchUsersOnline();
+
+      // Check username conflict (if changed)
+      if (newUsername !== oldUsername) {
+        const taken = users.some(u => u.username.toLowerCase() === newUsername.toLowerCase());
+        if (taken || newUsername.toLowerCase() === 'siswa' || newUsername.toLowerCase() === 'admin') {
+          msgEl.textContent = '❌ Username sudah digunakan akun lain.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
+        }
+      }
+
+      users = users.map(u => {
+        if (u.username !== oldUsername) return u;
+        const updatedUser = { ...u, username: newUsername, profile: { nama, nrp, pangkat, corps } };
+        if (passBaru) updatedUser.password = passBaru;
+        return updatedUser;
+      });
+
+      await saveUsersOnline(users);
+
+      msgEl.textContent = '✅ Data personel berhasil diperbarui!'; msgEl.style.color='var(--success)'; msgEl.style.background='#f0fdf4'; msgEl.style.display='block';
+
+      // Refresh both lists
+      await renderRingkasanPersonnel();
+      const statEl = document.getElementById('statPersonnel');
+      if (statEl) statEl.textContent = users.filter(u => u.role === 'siswa').length;
+
+      setTimeout(() => closeEditPersonnelModal(), 1600);
+    }
+
+    async function deletePersonnelFromModal() {
+      const username = document.getElementById('modalPersOldUsername').value;
+      if (!confirm(`Hapus permanen akun personel "${username}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+
+      let users = await fetchUsersOnline();
+      users = users.filter(u => u.username !== username);
+      await saveUsersOnline(users);
+
+      closeEditPersonnelModal();
+      await renderRingkasanPersonnel();
+      const statEl = document.getElementById('statPersonnel');
+      if (statEl) statEl.textContent = users.filter(u => u.role === 'siswa').length;
+    }
+
+    // ==========================================
+    // EXPORT & IMPORT PERSONNEL DATABASE
+    // ==========================================
+
+    function exportPersonnelToWord() {
+      const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      const students = users.filter(u => u.role === 'siswa');
+      if (students.length === 0) return alert('Tidak ada data personel untuk diexport.');
+      
+      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><title>Daftar Personel</title><style>body {font-family: Arial;} table {border-collapse: collapse; width: 100%;} th, td {border: 1px solid black; padding: 8px;}</style></head>
+      <body>
+      <h2>DAFTAR AKUN PERSONEL TERDAFTAR</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Kata Sandi</th>
+            <th>Nama Lengkap</th>
+            <th>NRP</th>
+            <th>Pangkat</th>
+            <th>Corps</th>
+          </tr>
+        </thead>
+        <tbody>`;
+        
+      students.forEach(student => {
+        const profile = student.profile || {};
+        html += `<tr>
+          <td>${student.username}</td>
+          <td>${student.password}</td>
+          <td>${profile.nama || '-'}</td>
+          <td>${profile.nrp || '-'}</td>
+          <td>${profile.pangkat || '-'}</td>
+          <td>${profile.corps || '-'}</td>
+        </tr>`;
+      });
+      
+      html += `</tbody></table></body></html>`;
+      
+      const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Daftar_Akun_Personel.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function exportPersonnelToExcel() {
+      const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      const students = users.filter(u => u.role === 'siswa');
+      if (students.length === 0) return alert('Tidak ada data personel untuk diexport.');
+      
+      let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><meta charset="utf-8"></head>
+      <body>
+      <table border="1">
+        <thead>
+          <tr>
+            <th style="background-color: #1e3a8a; color: white;">Username</th>
+            <th style="background-color: #1e3a8a; color: white;">Kata Sandi</th>
+            <th style="background-color: #1e3a8a; color: white;">Nama Lengkap</th>
+            <th style="background-color: #1e3a8a; color: white;">NRP</th>
+            <th style="background-color: #1e3a8a; color: white;">Pangkat</th>
+            <th style="background-color: #1e3a8a; color: white;">Corps</th>
+          </tr>
+        </thead>
+        <tbody>`;
+        
+      students.forEach(student => {
+        const profile = student.profile || {};
+        html += `<tr>
+          <td>${student.username}</td>
+          <td>${student.password}</td>
+          <td>${profile.nama || '-'}</td>
+          <td>${profile.nrp || '-'}</td>
+          <td>${profile.pangkat || '-'}</td>
+          <td>${profile.corps || '-'}</td>
+        </tr>`;
+      });
+      
+      html += `</tbody></table></body></html>`;
+      
+      const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Daftar_Akun_Personel.xls';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function importPersonnel(input) {
+      const file = input.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n');
+        let users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+        let importedCount = 0;
+        
+        lines.forEach(line => {
+          if (!line.trim()) return;
+          const parts = line.split('|');
+          if (parts.length >= 6) {
+            const usernameVal = parts[0].trim();
+            const passwordVal = parts[1].trim();
+            const namaVal = parts[2].trim();
+            const nrpVal = parts[3].trim();
+            const pangkatVal = parts[4].trim();
+            const corpsVal = parts[5].trim();
+            
+            if (usernameVal && passwordVal) {
+              // Check duplicates
+              const exists = users.some(u => u.username.toLowerCase() === usernameVal.toLowerCase());
+              if (!exists) {
+                const profile = { nama: namaVal, nrp: nrpVal, pangkat: pangkatVal, corps: corpsVal };
+                users.push({ role: 'siswa', username: usernameVal, password: passwordVal, profile });
+                importedCount++;
+              }
+            }
+          }
+        });
+        
+        if (importedCount > 0) {
+          localStorage.setItem('registeredUsers', JSON.stringify(users));
+          renderAdminPersonnel();
+          showNotification(`Berhasil mengimpor ${importedCount} akun personel baru.`, "success");
+        } else {
+          showNotification('Gagal mengimpor. Pastikan format berkas menggunakan pemisah pipa.', "error");
+        }
+        input.value = '';
+      };
+      reader.readAsText(file);
+    }
   
