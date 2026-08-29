@@ -1850,7 +1850,7 @@
           // MERGE with local to prevent data loss when syncing
           const merged = [...validUsers];
           localUsers.forEach(lu => {
-            if (!merged.some(mu => mString(u.username).toLowerCase() === lString(u.username).toLowerCase())) {
+            if (!merged.some(mu => String(mu.username).toLowerCase() === String(lu.username).toLowerCase())) {
               merged.push(lu);
             }
           });
