@@ -1357,28 +1357,12 @@
             </div>
           </div>
 
-          <div class="dashboard-card">
-          <h3>Manajemen Soal Ujian Esai</h3>
-          
-          <!-- Import/Export buttons -->
-          <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
-            <input type="file" id="importQuestionsFile" accept=".csv, .txt" onchange="importQuestions(this)" style="display: none;">
-            <button type="button" class="btn btn-secondary" onclick="document.getElementById('importQuestionsFile').click()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📥 Import Soal (.csv / .txt)
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="exportQuestionsToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📝 Export ke Word (.doc)
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="exportQuestionsToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-              📊 Export ke Excel (.xls)
-            </button>
-          </div>
-          <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; margin-top: -0.75rem;">
-            * Format berkas import (.txt/.csv): <code>Pertanyaan | kata_kunci1, kata_kunci2</code> (Satu soal per baris).
-          </p>
-          
-          <!-- Add / Edit Form -->
-          <form id="questionForm" onsubmit="saveQuestion(event)" style="background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+          <div class="two-column-layout">
+            
+            <!-- KOLOM KIRI: FORM -->
+            <div class="dashboard-card" style="margin-bottom: 0;">
+              <h3>Manajemen Soal Ujian Esai</h3>
+              <form id="questionForm" onsubmit="saveQuestion(event)" style="background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md);">
             <input type="hidden" id="editQuestId" value="">
             
             <div class="form-group">
@@ -1407,24 +1391,44 @@
                 Batal
               </button>
             </div>
-          </form>
+              </form>
+            </div>
 
-          <!-- List of Questions -->
-          <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-family: 'Outfit', sans-serif;">Daftar Soal Ujian:</h4>
-          <div id="adminQuestionsList">
+            <!-- KOLOM KANAN: TABEL -->
+            <div class="dashboard-card" style="margin-bottom: 0;">
+              <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-family: 'Outfit', sans-serif;">Daftar Soal Ujian:</h4>
+              <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+            <input type="file" id="importQuestionsFile" accept=".csv, .txt" onchange="importQuestions(this)" style="display: none;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('importQuestionsFile').click()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+              📥 Import Soal (.csv / .txt)
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="exportQuestionsToWord()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+              📝 Export ke Word (.doc)
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="exportQuestionsToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+              📊 Export ke Excel (.xls)
+            </button>
+              </div>
+              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; margin-top: -0.75rem;">
+                * Format berkas import (.txt/.csv): <code>Pertanyaan | kata_kunci1, kata_kunci2</code> (Satu soal per baris).
+              </p>
+              <div id="adminQuestionsList">
             <!-- Questions rendered dynamically -->
+              </div>
+            </div>
+
           </div>
-        </div>
         </div> <!-- End adminTab_soal -->
 
         <!-- 4. Database Personel Tab -->
         <div id="adminTab_personel" style="display: none;">
           <!-- Management Personnel Database Block -->
-          <div class="dashboard-card">
-          <h3>Manajemen Database Personil</h3>
-          
-          <!-- Add / Edit Personel Form -->
-          <form id="personnelForm" onsubmit="savePersonnel(event)" style="background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+          <div class="two-column-layout">
+            
+            <!-- KOLOM KIRI: FORM -->
+            <div class="dashboard-card" style="margin-bottom: 0;">
+              <h3>Manajemen Database Personil</h3>
+              <form id="personnelForm" onsubmit="savePersonnel(event)" style="background: #f8fafc; border: 1.5px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md);">
             <input type="hidden" id="editPersId" value="">
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
@@ -1493,13 +1497,13 @@
                 Batal
               </button>
             </div>
-          </form>
+              </form>
+            </div>
 
-          <!-- List of Personnel -->
-          <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-family: 'Outfit', sans-serif;">Daftar Akun Personel Terdaftar:</h4>
-          
-          <!-- Import/Export buttons -->
-          <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+            <!-- KOLOM KANAN: TABEL -->
+            <div class="dashboard-card" style="margin-bottom: 0;">
+              <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-family: 'Outfit', sans-serif;">Daftar Akun Personel Terdaftar:</h4>
+              <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
             <input type="file" id="importPersonnelFile" accept=".csv, .txt" onchange="importPersonnel(this)" style="display: none;">
             <button type="button" class="btn btn-secondary" onclick="document.getElementById('importPersonnelFile').click()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
               📥 Import Personel (.csv / .txt)
@@ -1510,12 +1514,11 @@
             <button type="button" class="btn btn-secondary" onclick="exportPersonnelToExcel()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
               📊 Export ke Excel (.xls)
             </button>
-          </div>
-          <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; margin-top: -0.75rem;">
-            * Format berkas import (.txt/.csv): <code>username | password | nama | nrp | pangkat | corps</code> (Satu akun per baris).
-          </p>
-
-          <div class="table-container">
+              </div>
+              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; margin-top: -0.75rem;">
+                * Format berkas import (.txt/.csv): <code>username | password | nama | nrp | pangkat | corps</code> (Satu akun per baris).
+              </p>
+              <div class="table-container">
             <table>
               <thead>
                 <tr>
@@ -1532,8 +1535,10 @@
                 <!-- Personnel rows rendered dynamically -->
               </tbody>
             </table>
+              </div>
+            </div>
+
           </div>
-        </div>
         </div> <!-- End adminTab_personel -->
 
         <!-- 5. Rekap Absensi Tab -->
@@ -1615,34 +1620,70 @@
 
         <!-- 7. Pengaturan Tampilan Tab -->
         <div id="adminTab_tampilan" style="display: none;">
-          <div class="dashboard-card" style="border-top: 5px solid var(--accent);">
-            <h3>🎨 Pengaturan Tampilan UI</h3>
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Ubah teks judul dan warna tema aplikasi (Berpengaruh pada halaman Siswa dan Login secara global).</p>
-            
-            <div class="form-group">
-              <label for="uiPortalTitle">Judul Utama Portal</label>
-              <input type="text" id="uiPortalTitle" placeholder="Contoh: Portal Evaluasi & Ujian">
-            </div>
-            
-            <div class="form-group">
-              <label for="uiPortalSubtitle">Sub-judul Login</label>
-              <input type="text" id="uiPortalSubtitle" placeholder="Contoh: Silakan masuk ke dalam sistem menggunakan akun Anda">
-            </div>
-
-            <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="two-column-layout">
+            <div class="dashboard-card" style="border-top: 5px solid var(--accent); margin-bottom: 0;">
+              <h3>🎨 Pengaturan Tampilan & Tema</h3>
+              <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Ubah teks judul, warna, font, dan logo aplikasi secara global.</p>
+              
               <div class="form-group">
-                <label for="uiBgColorStart">Warna Background (Atas)</label>
-                <input type="color" id="uiBgColorStart" value="#e2e8f0" style="padding: 0; height: 40px; cursor: pointer;">
+                <label for="uiPortalTitle">Judul Utama Portal</label>
+                <input type="text" id="uiPortalTitle" placeholder="Contoh: Portal Evaluasi & Ujian">
               </div>
+              
               <div class="form-group">
-                <label for="uiBgColorEnd">Warna Background (Bawah)</label>
-                <input type="color" id="uiBgColorEnd" value="#cbd5e1" style="padding: 0; height: 40px; cursor: pointer;">
+                <label for="uiPortalSubtitle">Sub-judul Login</label>
+                <input type="text" id="uiPortalSubtitle" placeholder="Contoh: Silakan masuk ke dalam sistem menggunakan akun Anda">
+              </div>
+
+              <div class="form-group">
+                <label for="uiLogoUrl">URL Logo Kustom (Opsional)</label>
+                <input type="text" id="uiLogoUrl" placeholder="Contoh: https://example.com/logo.png">
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Kosongkan jika ingin menggunakan ikon default.</p>
+              </div>
+
+              <div class="form-group">
+                <label for="uiFontFamily">Jenis Huruf (Font)</label>
+                <select id="uiFontFamily">
+                  <option value="'Inter', sans-serif">Inter (Default Modern)</option>
+                  <option value="'Outfit', sans-serif">Outfit (Elegan)</option>
+                  <option value="'Roboto', sans-serif">Roboto (Klasik)</option>
+                  <option value="'Open Sans', sans-serif">Open Sans (Mudah Dibaca)</option>
+                </select>
+              </div>
+
+              <div class="stats-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                  <label for="uiPrimaryColor">Warna Utama</label>
+                  <input type="color" id="uiPrimaryColor" value="#3b82f6" style="padding: 0; height: 40px; cursor: pointer; width: 100%;">
+                </div>
+                <div class="form-group">
+                  <label for="uiBgColorStart">Background (Atas)</label>
+                  <input type="color" id="uiBgColorStart" value="#e2e8f0" style="padding: 0; height: 40px; cursor: pointer; width: 100%;">
+                </div>
+                <div class="form-group">
+                  <label for="uiBgColorEnd">Background (Bawah)</label>
+                  <input type="color" id="uiBgColorEnd" value="#cbd5e1" style="padding: 0; height: 40px; cursor: pointer; width: 100%;">
+                </div>
+              </div>
+
+              <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                <button class="btn btn-primary" onclick="saveUISettings()">💾 Simpan Pengaturan</button>
+                <button class="btn btn-secondary" onclick="resetUISettings()">🔄 Kembalikan ke Default</button>
               </div>
             </div>
-
-            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-              <button class="btn btn-primary" onclick="saveUISettings()">Simpan Pengaturan</button>
-              <button class="btn btn-secondary" onclick="resetUISettings()">Kembalikan ke Default</button>
+            
+            <div class="dashboard-card" style="margin-bottom: 0;">
+              <h4>Pratinjau Halaman Login</h4>
+              <div style="border: 2px dashed var(--border-color); border-radius: var(--radius-md); overflow: hidden; height: 350px; position: relative;">
+                <div id="previewLogin" style="width: 100%; height: 100%; background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1rem;">
+                  <div style="background: white; padding: 1.5rem; border-radius: 8px; width: 80%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center;">
+                    <img id="previewLogo" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/%3E%3C/svg%3E" style="height: 40px; margin-bottom: 1rem;">
+                    <h3 id="previewTitle" style="font-size: 1rem; margin-bottom: 0.5rem; font-family: 'Inter', sans-serif;">Portal Evaluasi & Ujian</h3>
+                    <p id="previewSubtitle" style="font-size: 0.7rem; color: #64748b; margin-bottom: 1rem;">Silakan masuk ke dalam sistem</p>
+                    <div style="background: #3b82f6; color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.8rem;" id="previewBtn">Login</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div> <!-- End adminTab_tampilan -->
