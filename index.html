@@ -1850,7 +1850,7 @@
           // MERGE with local to prevent data loss when syncing
           const merged = [...validUsers];
           localUsers.forEach(lu => {
-            if (!merged.some(mu => mu.username.toLowerCase() === lu.username.toLowerCase())) {
+            if (!merged.some(mu => mString(u.username).toLowerCase() === lString(u.username).toLowerCase())) {
               merged.push(lu);
             }
           });
@@ -2401,7 +2401,7 @@
 
       // Check username duplicate in localStorage
       const users = await fetchUsersOnline();
-      const userExists = users.some(u => u.username.toLowerCase() === username.toLowerCase());
+      const userExists = users.some(u => String(u.username).toLowerCase() === username.toLowerCase());
 
       if (userExists || username.toLowerCase() === 'siswa' || username.toLowerCase() === 'admin') {
         errorBox.querySelector('span').textContent = 'Username ini sudah terdaftar.';
@@ -2434,7 +2434,7 @@
 
       // 1. Check custom database online
       const users = await fetchUsersOnline();
-      const customUser = users.find(u => u.username.toLowerCase() === userVal.toLowerCase() && u.password === passVal);
+      const customUser = users.find(u => String(u.username).toLowerCase() === userVal.toLowerCase() && u.password === passVal);
 
       if (customUser) {
         if (customUser.role === currentLoginTab) {
@@ -2731,7 +2731,7 @@
 
       // Update di database users (localStorage + online)
       const users = await fetchUsersOnline();
-      const idx = users.findIndex(u => u.username.toLowerCase() === (activeUsername || '').toLowerCase());
+      const idx = users.findIndex(u => String(u.username).toLowerCase() === (activeUsername || '').toLowerCase());
       if (idx !== -1) {
         users[idx].profile = updatedProfile;
         if (passBaru) {
@@ -3832,7 +3832,7 @@
 
       // Check duplicates if username changes or new registration
       if (idVal !== usernameVal) {
-        const userExists = users.some(u => u.username.toLowerCase() === usernameVal.toLowerCase());
+        const userExists = users.some(u => String(u.username).toLowerCase() === usernameVal.toLowerCase());
         if (userExists || usernameVal.toLowerCase() === 'siswa' || usernameVal.toLowerCase() === 'admin') {
           alert('Username ini sudah terdaftar.');
           return;
@@ -4029,14 +4029,14 @@
 
       // Check username conflict (if changed)
       if (newUsername !== oldUsername) {
-        const taken = users.some(u => u.username.toLowerCase() === newUsername.toLowerCase());
+        const taken = users.some(u => String(u.username).toLowerCase() === newUsername.toLowerCase());
         if (taken || newUsername.toLowerCase() === 'siswa' || newUsername.toLowerCase() === 'admin') {
           msgEl.textContent = '❌ Username sudah digunakan akun lain.'; msgEl.style.color='var(--error)'; msgEl.style.background='#fef2f2'; msgEl.style.display='block'; return;
         }
       }
 
       users = users.map(u => {
-        if (u.username !== oldUsername) return u;
+        if (String(u.username) !== String(oldUsername)) return u;
         const updatedUser = { ...u, username: newUsername, profile: { nama, nrp, pangkat, corps } };
         if (passBaru) updatedUser.password = passBaru;
         return updatedUser;
@@ -4187,7 +4187,7 @@
             
             if (usernameVal && passwordVal) {
               // Check duplicates
-              const exists = users.some(u => u.username.toLowerCase() === usernameVal.toLowerCase());
+              const exists = users.some(u => String(u.username).toLowerCase() === usernameVal.toLowerCase());
               if (!exists) {
                 const profile = { nama: namaVal, nrp: nrpVal, pangkat: pangkatVal, corps: corpsVal };
                 users.push({ role: 'siswa', username: usernameVal, password: passwordVal, profile });
