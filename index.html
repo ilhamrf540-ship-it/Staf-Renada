@@ -1552,6 +1552,32 @@
             </div>
           </div>
 
+          <div class="stats-grid" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+            <div class="stat-card" style="border-top: 4px solid var(--primary);">
+              <div class="stat-label">Total Personil</div>
+              <div class="stat-value" id="absStatTotal">0</div>
+            </div>
+            <div class="stat-card success-border">
+              <div class="stat-label">Sudah Absen Hari Ini</div>
+              <div class="stat-value" id="absStatSudah">0</div>
+            </div>
+            <div class="stat-card error-border">
+              <div class="stat-label">Belum Absen</div>
+              <div class="stat-value" id="absStatBelum">0</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="background: #fff; padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); border-left: 4px solid #f59e0b;">
+              <h4 style="margin:0 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);">Absen Pertama Hari Ini</h4>
+              <div id="absFirstInfo" style="font-weight: 600; color: var(--text-main); font-size: 1rem;">-</div>
+            </div>
+            <div style="background: #fff; padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); border-left: 4px solid #10b981;">
+              <h4 style="margin:0 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);">Absen Terakhir Hari Ini</h4>
+              <div id="absLastInfo" style="font-weight: 600; color: var(--text-main); font-size: 1rem;">-</div>
+            </div>
+          </div>
+
+
           <div class="table-container">
             <table>
               <thead>
